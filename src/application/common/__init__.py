@@ -1,0 +1,2 @@
+"""Общие DTO application-слоя."""
+

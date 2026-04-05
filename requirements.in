@@ -1,4 +1,8 @@
 pytest
+fastapi
+uvicorn
+pydantic
+pydantic[email]
 
 black
 isort

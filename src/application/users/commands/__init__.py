@@ -1,0 +1,2 @@
+"""Command DTO поддомена users."""
+
