@@ -15,6 +15,12 @@ install: requirements ## Установить зависимости
 test: ## Запустить все тесты с подробным выводом
 	pytest -v
 
+migrate-up: ## Применить миграции Alembic до head
+	alembic upgrade head
+
+migrate-down-1: ## Откатить одну миграцию Alembic
+	alembic downgrade -1
+
 # ========================
 # Code Quality
 # ========================

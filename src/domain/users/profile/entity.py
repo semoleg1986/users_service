@@ -101,6 +101,13 @@ class UserProfile:
         self.display_name = display_name
         self.meta.touch(at=now, actor_id=actor_id)
 
+    def change_email(self, *, email: Email, now: datetime, actor_id: str) -> None:
+        """Обновляет email пользователя."""
+
+        self._ensure_not_archived()
+        self.email = email
+        self.meta.touch(at=now, actor_id=actor_id)
+
     def change_phone(self, *, phone: Phone | None, now: datetime, actor_id: str) -> None:
         """Обновляет телефон профиля."""
 
@@ -156,7 +163,14 @@ class UserProfile:
         self.status = UserStatus.ARCHIVED
         self.meta.mark_archived(at=now, actor_id=actor_id)
 
+    def restore(self, *, now: datetime, actor_id: str) -> None:
+        """Восстанавливает архивированного пользователя в active."""
+
+        if self.status != UserStatus.ARCHIVED:
+            raise InvariantViolationError("Восстановление возможно только для архивного пользователя.")
+        self.status = UserStatus.ACTIVE
+        self.meta.touch(at=now, actor_id=actor_id)
+
     def _ensure_not_archived(self) -> None:
         if self.status == UserStatus.ARCHIVED:
             raise InvariantViolationError("Операция недоступна для архивного пользователя.")
-

@@ -42,6 +42,7 @@ from src.application.users.handlers.create_user_profile_handler import (
     CreateUserProfileHandler,
 )
 from src.infrastructure.clock.system_clock import SystemClock
+from src.infrastructure.config.settings import Settings
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
     InMemoryUserProfileRepository,
@@ -60,12 +61,24 @@ class RuntimeContainer:
 def build_runtime() -> RuntimeContainer:
     """Собирает runtime-граф зависимостей."""
 
-    uow = InMemoryUnitOfWork(
-        InMemoryRepositoryProvider(
-            user_profiles=InMemoryUserProfileRepository(),
-            parent_student_links=InMemoryParentStudentLinkRepository(),
+    settings = Settings.from_env()
+    if settings.use_inmemory:
+        uow = InMemoryUnitOfWork(
+            InMemoryRepositoryProvider(
+                user_profiles=InMemoryUserProfileRepository(),
+                parent_student_links=InMemoryParentStudentLinkRepository(),
+            )
         )
-    )
+    else:
+        from src.infrastructure.db.sqlalchemy.base import Base
+        from src.infrastructure.db.sqlalchemy.session import build_engine, build_session_factory
+        from src.infrastructure.db.sqlalchemy.uow.sqlalchemy_uow import SqlAlchemyUnitOfWork
+
+        engine = build_engine(settings.database_url)
+        if settings.auto_create_schema:
+            Base.metadata.create_all(bind=engine)
+        uow = SqlAlchemyUnitOfWork(build_session_factory(engine))
+
     clock = SystemClock()
     id_generator = UuidGenerator()
 

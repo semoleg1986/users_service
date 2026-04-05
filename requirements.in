@@ -3,6 +3,9 @@ fastapi
 uvicorn
 pydantic
 pydantic[email]
+sqlalchemy
+alembic
+psycopg[binary]
 
 black
 isort

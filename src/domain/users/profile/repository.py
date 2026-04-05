@@ -19,3 +19,5 @@ class UserProfileRepository(Protocol):
     def save(self, profile: UserProfile) -> None:
         """Сохраняет агрегат профиля пользователя."""
 
+    def list(self, *, role: str | None = None, status: str | None = None) -> list[UserProfile]:
+        """Возвращает список профилей с фильтрацией."""

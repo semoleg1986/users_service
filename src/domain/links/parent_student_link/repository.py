@@ -19,3 +19,10 @@ class ParentStudentLinkRepository(Protocol):
     def save(self, link: ParentStudentLink) -> None:
         """Сохраняет агрегат связи."""
 
+    def list(
+        self, *, parent_id: str | None = None, student_id: str | None = None
+    ) -> list[ParentStudentLink]:
+        """Возвращает список связей с фильтрацией."""
+
+    def list_active_by_parent(self, parent_id: str) -> list[ParentStudentLink]:
+        """Возвращает активные связи указанного parent."""

@@ -1,0 +1,35 @@
+"""SQLAlchemy Unit of Work."""
+
+from __future__ import annotations
+
+from sqlalchemy.orm import Session, sessionmaker
+
+from src.application.ports.repositories import RepositoryProvider
+from src.infrastructure.db.sqlalchemy.repositories.parent_student_link_repository_sqlalchemy import (
+    SqlAlchemyParentStudentLinkRepository,
+)
+from src.infrastructure.db.sqlalchemy.repositories.user_profile_repository_sqlalchemy import (
+    SqlAlchemyUserProfileRepository,
+)
+
+
+class SqlAlchemyUnitOfWork:
+    """SQLAlchemy реализация UnitOfWork."""
+
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+        self._db: Session = session_factory()
+        self.repositories = RepositoryProvider(
+            user_profiles=SqlAlchemyUserProfileRepository(self._db),
+            parent_student_links=SqlAlchemyParentStudentLinkRepository(self._db),
+        )
+
+    def commit(self) -> None:
+        self._db.commit()
+
+    def rollback(self) -> None:
+        self._db.rollback()
+
+    def close(self) -> None:
+        self._db.close()
+
