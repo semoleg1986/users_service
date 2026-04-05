@@ -6,6 +6,14 @@
 export USERS_DATABASE_URL='postgresql+psycopg://postgres:postgres@localhost:5432/users_service'
 ```
 
+Быстрый старт через шаблоны env:
+
+```bash
+cp .env.local.example .env
+```
+
+Выберите профиль `dev-postgres` и оставьте только его переменные.
+
 ## 2. Режим хранилища
 
 ```bash
@@ -36,3 +44,17 @@ make migrate-down-1
 uvicorn src.interface.http.main:app --reload
 ```
 
+## 5. Auth/JWKS
+
+Для проверки Bearer JWT укажите:
+
+```bash
+export USERS_AUTH_ISSUER='auth_service'
+export USERS_AUTH_JWKS_URL='http://localhost:8000/.well-known/jwks.json'
+```
+
+Если `auth_service` не поднят, можно использовать встроенный JSON:
+
+```bash
+export USERS_AUTH_JWKS_JSON='{"keys":[...]}'
+```
