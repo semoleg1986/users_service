@@ -1,0 +1,17 @@
+@startuml
+class UserProfile {
+  +user_id
+  +status
+}
+class RoleAssignment
+class ParentStudentLink {
+  +link_id
+  +parent_id
+  +student_id
+  +status
+}
+
+UserProfile "1" *-- "many" RoleAssignment
+ParentStudentLink "many" --> "1" UserProfile : parent
+ParentStudentLink "many" --> "1" UserProfile : student
+@enduml

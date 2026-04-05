@@ -1,0 +1,576 @@
+openapi: 3.1.0
+info:
+  title: users_service API
+  version: 0.1.0
+  description: |
+    Контрактный API для контекста управления пользователями.
+    Покрывает профили пользователей, роли и связи родитель-ученик.
+servers:
+  - url: http://localhost:8000
+
+tags:
+  - name: health
+  - name: admin
+  - name: user
+  - name: parent
+
+paths:
+  /healthz:
+    get:
+      tags: [health]
+      summary: Проверка состояния
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Сервис доступен
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+
+  /v1/admin/users:
+    post:
+      tags: [admin]
+      summary: Создать пользователя
+      operationId: adminCreateUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    get:
+      tags: [admin]
+      summary: Список пользователей
+      operationId: adminListUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: role
+          schema:
+            $ref: '#/components/schemas/Role'
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+
+  /v1/admin/users/{user_id}:
+    get:
+      tags: [admin]
+      summary: Получить пользователя по id
+      operationId: adminGetUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Пользователь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    patch:
+      tags: [admin]
+      summary: Обновить профиль пользователя
+      operationId: adminUpdateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/admin/users/{user_id}/roles:
+    post:
+      tags: [admin]
+      summary: Назначить роль пользователю
+      operationId: adminAssignRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+      responses:
+        '200':
+          description: Роль назначена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    delete:
+      tags: [admin]
+      summary: Снять роль у пользователя
+      operationId: adminRevokeRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - in: query
+          name: role
+          required: true
+          schema:
+            $ref: '#/components/schemas/Role'
+      responses:
+        '200':
+          description: Роль снята
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/admin/users/{user_id}/block:
+    post:
+      tags: [admin]
+      summary: Заблокировать пользователя
+      operationId: adminBlockUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Заблокирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/admin/users/{user_id}/unblock:
+    post:
+      tags: [admin]
+      summary: Разблокировать пользователя
+      operationId: adminUnblockUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Разблокирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/admin/users/{user_id}/archive:
+    post:
+      tags: [admin]
+      summary: Архивировать пользователя
+      operationId: adminArchiveUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Архивирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/admin/users/{user_id}/restore:
+    post:
+      tags: [admin]
+      summary: Восстановить архивированного пользователя
+      operationId: adminRestoreUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Восстановлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/admin/links:
+    get:
+      tags: [admin]
+      summary: Список связей родитель-ученик
+      operationId: adminListLinks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: parent_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: student_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Связи
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ParentStudentLinkResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+    post:
+      tags: [admin]
+      summary: Создать связь родитель-ученик
+      operationId: adminCreateLink
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateParentStudentLinkRequest'
+      responses:
+        '201':
+          description: Связь создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentStudentLinkResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/admin/links/{link_id}:
+    delete:
+      tags: [admin]
+      summary: Удалить связь родитель-ученик
+      operationId: adminRemoveLink
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LinkId'
+      responses:
+        '200':
+          description: Связь удалена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentStudentLinkResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/user/me:
+    get:
+      tags: [user]
+      summary: Получить свой профиль
+      operationId: userGetMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Собственный профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+    patch:
+      tags: [user]
+      summary: Обновить свой профиль
+      operationId: userUpdateMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/parent/me/students:
+    get:
+      tags: [parent]
+      summary: Список связанных учеников родителя
+      operationId: parentListStudents
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Связанные ученики
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LinkId:
+      name: link_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Не авторизован
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    AccessDenied:
+      description: Доступ запрещен
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Не найдено
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Конфликт или нарушение инварианта
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationError:
+      description: Ошибка валидации
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        request_id: { type: string }
+
+    Role:
+      type: string
+      enum: [admin, teacher, parent, student]
+
+    UserStatus:
+      type: string
+      enum: [active, blocked, archived]
+
+    UserResponse:
+      type: object
+      required: [user_id, status, roles]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+
+    CreateUserRequest:
+      type: object
+      required: [first_name, last_name]
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+
+    AssignRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+
+    CreateParentStudentLinkRequest:
+      type: object
+      required: [parent_id, student_id]
+      properties:
+        parent_id:
+          type: string
+          format: uuid
+        student_id:
+          type: string
+          format: uuid
+
+    ParentStudentLinkResponse:
+      type: object
+      required: [link_id, parent_id, student_id, status]
+      properties:
+        link_id:
+          type: string
+          format: uuid
+        parent_id:
+          type: string
+          format: uuid
+        student_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, removed]

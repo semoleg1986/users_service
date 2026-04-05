@@ -1,0 +1,10 @@
+@startuml
+left to right direction
+
+rectangle auth_service
+rectangle users_service
+rectangle course_service
+
+auth_service --> users_service : actor context / roles
+users_service --> course_service : teacher/student/link data
+@enduml
