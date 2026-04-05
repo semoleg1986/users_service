@@ -13,16 +13,7 @@ class CreateParentStudentLinkRequest(BaseModel):
     link_id: str | None = None
     parent_id: str
     student_id: str
-    actor_id: str
-    actor_roles: list[str]
     note: str | None = None
-
-
-class RemoveParentStudentLinkRequest(BaseModel):
-    """Request удаления связи parent-student."""
-
-    actor_id: str
-    actor_roles: list[str]
 
 
 class ParentStudentLinkResponse(BaseModel):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Depends, Query
 
 from src.application.links.commands.dto import (
     CreateParentStudentLinkCommand,
@@ -19,11 +19,11 @@ from src.application.users.commands.dto import (
     UpdateUserProfileCommand,
 )
 from src.application.users.queries.dto import GetUserByIdQuery, ListUsersQuery
+from src.interface.http.common.actor import HttpActor, get_http_actor
 from src.interface.http.v1.schemas.links import (
     CreateParentStudentLinkRequest,
     ParentStudentLinkListResponse,
     ParentStudentLinkResponse,
-    RemoveParentStudentLinkRequest,
 )
 from src.interface.http.v1.schemas.users import (
     AssignRoleRequest,
@@ -38,7 +38,11 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 
 @router.post("/users", response_model=UserResponse, status_code=201)
-def create_user(payload: CreateUserRequest, facade=Depends(get_facade)) -> UserResponse:
+def create_user(
+    payload: CreateUserRequest,
+    actor: HttpActor = Depends(get_http_actor),
+    facade=Depends(get_facade),
+) -> UserResponse:
     """Создает профиль пользователя."""
 
     result = facade.execute(
@@ -48,7 +52,7 @@ def create_user(payload: CreateUserRequest, facade=Depends(get_facade)) -> UserR
             display_name=payload.display_name,
             phone=payload.phone,
             roles=payload.roles,
-            actor_id=payload.actor_id,
+            actor_id=actor.actor_id,
         )
     )
     return UserResponse(**asdict(result))
@@ -56,7 +60,9 @@ def create_user(payload: CreateUserRequest, facade=Depends(get_facade)) -> UserR
 
 @router.post("/links", response_model=ParentStudentLinkResponse, status_code=201)
 def create_parent_student_link(
-    payload: CreateParentStudentLinkRequest, facade=Depends(get_facade)
+    payload: CreateParentStudentLinkRequest,
+    actor: HttpActor = Depends(get_http_actor),
+    facade=Depends(get_facade),
 ) -> ParentStudentLinkResponse:
     """Создает связь родитель-ученик."""
 
@@ -65,8 +71,8 @@ def create_parent_student_link(
             link_id=payload.link_id,
             parent_id=payload.parent_id,
             student_id=payload.student_id,
-            actor_id=payload.actor_id,
-            actor_roles=payload.actor_roles,
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
             note=payload.note,
         )
     )
@@ -75,18 +81,17 @@ def create_parent_student_link(
 
 @router.get("/users", response_model=UserListResponse)
 def list_users(
-    actor_id: str = Query(...),
-    actor_roles: str = Query(...),
     role: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserListResponse:
     """Возвращает список пользователей."""
 
     result = facade.query(
         ListUsersQuery(
-            actor_id=actor_id,
-            actor_roles=[r.strip() for r in actor_roles.split(",") if r.strip()],
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
             role=role,
             status=status,
         )
@@ -97,8 +102,7 @@ def list_users(
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: str,
-    actor_id: str = Query(...),
-    actor_roles: str = Query(...),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Возвращает пользователя по ID."""
@@ -106,8 +110,8 @@ def get_user(
     result = facade.query(
         GetUserByIdQuery(
             user_id=user_id,
-            actor_id=actor_id,
-            actor_roles=[r.strip() for r in actor_roles.split(",") if r.strip()],
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
         )
     )
     return UserResponse(**asdict(result))
@@ -117,8 +121,7 @@ def get_user(
 def update_user(
     user_id: str,
     payload: UpdateUserRequest,
-    actor_id: str = Query(...),
-    actor_roles: str = Query(...),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Обновляет профиль пользователя."""
@@ -126,8 +129,8 @@ def update_user(
     result = facade.execute(
         UpdateUserProfileCommand(
             user_id=user_id,
-            actor_id=actor_id,
-            actor_roles=[r.strip() for r in actor_roles.split(",") if r.strip()],
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
             display_name=payload.display_name,
             email=payload.email,
             phone=payload.phone,
@@ -137,15 +140,20 @@ def update_user(
 
 
 @router.post("/users/{user_id}/roles", response_model=UserResponse)
-def assign_role(user_id: str, payload: AssignRoleRequest, facade=Depends(get_facade)) -> UserResponse:
+def assign_role(
+    user_id: str,
+    payload: AssignRoleRequest,
+    actor: HttpActor = Depends(get_http_actor),
+    facade=Depends(get_facade),
+) -> UserResponse:
     """Назначает роль пользователю."""
 
     result = facade.execute(
         AssignRoleCommand(
             user_id=user_id,
             role=payload.role,
-            actor_id=payload.actor_id,
-            actor_roles=payload.actor_roles,
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
         )
     )
     return UserResponse(**asdict(result))
@@ -155,8 +163,7 @@ def assign_role(user_id: str, payload: AssignRoleRequest, facade=Depends(get_fac
 def revoke_role(
     user_id: str,
     role: str = Query(...),
-    actor_id: str = Query(...),
-    actor_roles: str = Query(...),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Снимает роль у пользователя."""
@@ -165,8 +172,8 @@ def revoke_role(
         RevokeRoleCommand(
             user_id=user_id,
             role=role,
-            actor_id=actor_id,
-            actor_roles=[r.strip() for r in actor_roles.split(",") if r.strip()],
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
         )
     )
     return UserResponse(**asdict(result))
@@ -175,16 +182,15 @@ def revoke_role(
 def _change_status(
     user_id: str,
     action: str,
-    actor_id: str,
-    actor_roles: list[str],
+    actor: HttpActor,
     facade,
 ) -> UserResponse:
     result = facade.execute(
         ChangeUserStatusCommand(
             user_id=user_id,
             action=action,
-            actor_id=actor_id,
-            actor_roles=actor_roles,
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
         )
     )
     return UserResponse(**asdict(result))
@@ -193,65 +199,60 @@ def _change_status(
 @router.post("/users/{user_id}/block", response_model=UserResponse)
 def block_user(
     user_id: str,
-    actor_id: str = Body(..., embed=True),
-    actor_roles: list[str] = Body(..., embed=True),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Блокирует пользователя."""
 
-    return _change_status(user_id, "block", actor_id, actor_roles, facade)
+    return _change_status(user_id, "block", actor, facade)
 
 
 @router.post("/users/{user_id}/unblock", response_model=UserResponse)
 def unblock_user(
     user_id: str,
-    actor_id: str = Body(..., embed=True),
-    actor_roles: list[str] = Body(..., embed=True),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Разблокирует пользователя."""
 
-    return _change_status(user_id, "unblock", actor_id, actor_roles, facade)
+    return _change_status(user_id, "unblock", actor, facade)
 
 
 @router.post("/users/{user_id}/archive", response_model=UserResponse)
 def archive_user(
     user_id: str,
-    actor_id: str = Body(..., embed=True),
-    actor_roles: list[str] = Body(..., embed=True),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Архивирует пользователя."""
 
-    return _change_status(user_id, "archive", actor_id, actor_roles, facade)
+    return _change_status(user_id, "archive", actor, facade)
 
 
 @router.post("/users/{user_id}/restore", response_model=UserResponse)
 def restore_user(
     user_id: str,
-    actor_id: str = Body(..., embed=True),
-    actor_roles: list[str] = Body(..., embed=True),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> UserResponse:
     """Восстанавливает пользователя из архива."""
 
-    return _change_status(user_id, "restore", actor_id, actor_roles, facade)
+    return _change_status(user_id, "restore", actor, facade)
 
 
 @router.get("/links", response_model=ParentStudentLinkListResponse)
 def list_links(
-    actor_id: str = Query(...),
-    actor_roles: str = Query(...),
     parent_id: str | None = Query(default=None),
     student_id: str | None = Query(default=None),
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> ParentStudentLinkListResponse:
     """Возвращает список связей родитель-ученик."""
 
     result = facade.query(
         ListParentStudentLinksQuery(
-            actor_id=actor_id,
-            actor_roles=[r.strip() for r in actor_roles.split(",") if r.strip()],
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
             parent_id=parent_id,
             student_id=student_id,
         )
@@ -264,7 +265,7 @@ def list_links(
 @router.delete("/links/{link_id}", response_model=ParentStudentLinkResponse)
 def remove_link(
     link_id: str,
-    payload: RemoveParentStudentLinkRequest,
+    actor: HttpActor = Depends(get_http_actor),
     facade=Depends(get_facade),
 ) -> ParentStudentLinkResponse:
     """Удаляет связь родитель-ученик."""
@@ -272,8 +273,8 @@ def remove_link(
     result = facade.execute(
         RemoveParentStudentLinkCommand(
             link_id=link_id,
-            actor_id=payload.actor_id,
-            actor_roles=payload.actor_roles,
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
         )
     )
     return ParentStudentLinkResponse(**asdict(result))

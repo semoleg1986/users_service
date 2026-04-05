@@ -6,6 +6,8 @@ pydantic[email]
 sqlalchemy
 alembic
 psycopg[binary]
+pyjwt
+cryptography
 
 black
 isort

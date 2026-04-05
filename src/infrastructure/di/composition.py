@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.application.ports.access_token_verifier import AccessTokenVerifier
 from src.application.facade.application_facade import ApplicationFacade
 from src.application.links.commands.dto import CreateParentStudentLinkCommand
 from src.application.links.handlers.create_parent_student_link_handler import (
@@ -42,6 +43,7 @@ from src.application.users.handlers.create_user_profile_handler import (
     CreateUserProfileHandler,
 )
 from src.infrastructure.clock.system_clock import SystemClock
+from src.infrastructure.auth.jwks_access_token_verifier import JwksAccessTokenVerifier
 from src.infrastructure.config.settings import Settings
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
@@ -56,12 +58,18 @@ class RuntimeContainer:
     """Контейнер runtime-зависимостей."""
 
     facade: ApplicationFacade
+    access_token_verifier: AccessTokenVerifier
 
 
 def build_runtime() -> RuntimeContainer:
     """Собирает runtime-граф зависимостей."""
 
     settings = Settings.from_env()
+    access_token_verifier = JwksAccessTokenVerifier(
+        issuer=settings.auth_issuer,
+        jwks_url=settings.auth_jwks_url,
+        jwks_json=settings.auth_jwks_json,
+    )
     if settings.use_inmemory:
         uow = InMemoryUnitOfWork(
             InMemoryRepositoryProvider(
@@ -122,4 +130,4 @@ def build_runtime() -> RuntimeContainer:
         ListParentStudentLinksQuery,
         ListParentStudentLinksHandler(uow=uow),
     )
-    return RuntimeContainer(facade=facade)
+    return RuntimeContainer(facade=facade, access_token_verifier=access_token_verifier)

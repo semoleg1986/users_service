@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: users_service API
-  version: 0.2.0
+  version: 0.3.0
   description: |
-    Контрактный API для контекста управления пользователями.
-    Синхронизирован с текущей реализацией interface-слоя.
+    Контрактный API users_service.
+    Авторизация выполняется через Bearer access token (JWT, issuer=auth_service).
 servers:
   - url: http://localhost:8000
 
@@ -38,6 +38,8 @@ paths:
       tags: [admin]
       summary: Создать пользователя
       operationId: adminCreateUser
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -46,11 +48,13 @@ paths:
               $ref: '#/components/schemas/CreateUserRequest'
       responses:
         '201':
-          description: Создано
+          description: Пользователь создан
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
@@ -58,9 +62,9 @@ paths:
       tags: [admin]
       summary: Список пользователей
       operationId: adminListUsers
+      security:
+        - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ActorIdQuery'
-        - $ref: '#/components/parameters/ActorRolesQuery'
         - in: query
           name: role
           schema:
@@ -76,6 +80,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
 
   /v1/admin/users/{user_id}:
@@ -83,17 +88,18 @@ paths:
       tags: [admin]
       summary: Получить пользователя по id
       operationId: adminGetUserById
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/ActorIdQuery'
-        - $ref: '#/components/parameters/ActorRolesQuery'
       responses:
         '200':
-          description: Пользователь
+          description: Профиль пользователя
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -101,10 +107,10 @@ paths:
       tags: [admin]
       summary: Обновить профиль пользователя
       operationId: adminUpdateUser
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/ActorIdQuery'
-        - $ref: '#/components/parameters/ActorRolesQuery'
       requestBody:
         required: true
         content:
@@ -113,11 +119,12 @@ paths:
               $ref: '#/components/schemas/UpdateUserRequest'
       responses:
         '200':
-          description: Обновлено
+          description: Профиль обновлен
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
@@ -127,6 +134,8 @@ paths:
       tags: [admin]
       summary: Назначить роль пользователю
       operationId: adminAssignRole
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
       requestBody:
@@ -142,6 +151,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
@@ -150,6 +160,8 @@ paths:
       tags: [admin]
       summary: Снять роль у пользователя
       operationId: adminRevokeRole
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
         - in: query
@@ -157,8 +169,6 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/Role'
-        - $ref: '#/components/parameters/ActorIdQuery'
-        - $ref: '#/components/parameters/ActorRolesQuery'
       responses:
         '200':
           description: Роль снята
@@ -166,6 +176,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -174,21 +185,18 @@ paths:
       tags: [admin]
       summary: Заблокировать пользователя
       operationId: adminBlockUser
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangeStatusRequest'
       responses:
         '200':
-          description: Заблокирован
+          description: Пользователь заблокирован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -197,21 +205,18 @@ paths:
       tags: [admin]
       summary: Разблокировать пользователя
       operationId: adminUnblockUser
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangeStatusRequest'
       responses:
         '200':
-          description: Разблокирован
+          description: Пользователь разблокирован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -220,21 +225,18 @@ paths:
       tags: [admin]
       summary: Архивировать пользователя
       operationId: adminArchiveUser
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangeStatusRequest'
       responses:
         '200':
-          description: Архивирован
+          description: Пользователь архивирован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -243,21 +245,18 @@ paths:
       tags: [admin]
       summary: Восстановить архивированного пользователя
       operationId: adminRestoreUser
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/UserId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangeStatusRequest'
       responses:
         '200':
-          description: Восстановлен
+          description: Пользователь восстановлен
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -266,9 +265,9 @@ paths:
       tags: [admin]
       summary: Список связей родитель-ученик
       operationId: adminListLinks
+      security:
+        - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ActorIdQuery'
-        - $ref: '#/components/parameters/ActorRolesQuery'
         - in: query
           name: parent_id
           schema:
@@ -279,17 +278,20 @@ paths:
             type: string
       responses:
         '200':
-          description: Связи
+          description: Список связей
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ParentStudentLinkListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
 
     post:
       tags: [admin]
       summary: Создать связь родитель-ученик
       operationId: adminCreateLink
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -303,6 +305,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ParentStudentLinkResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
@@ -312,14 +315,10 @@ paths:
       tags: [admin]
       summary: Удалить связь родитель-ученик
       operationId: adminRemoveLink
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/LinkId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RemoveParentStudentLinkRequest'
       responses:
         '200':
           description: Связь удалена
@@ -327,6 +326,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ParentStudentLinkResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/AccessDenied' }
         '409': { $ref: '#/components/responses/Conflict' }
 
@@ -335,9 +335,8 @@ paths:
       tags: [user]
       summary: Получить свой профиль
       operationId: userGetMe
-      parameters:
-        - $ref: '#/components/parameters/ActorIdHeader'
-        - $ref: '#/components/parameters/ActorRolesHeader'
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Собственный профиль
@@ -352,9 +351,8 @@ paths:
       tags: [user]
       summary: Обновить свой профиль
       operationId: userUpdateMe
-      parameters:
-        - $ref: '#/components/parameters/ActorIdHeader'
-        - $ref: '#/components/parameters/ActorRolesHeader'
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -363,7 +361,7 @@ paths:
               $ref: '#/components/schemas/UpdateUserRequest'
       responses:
         '200':
-          description: Обновлено
+          description: Профиль обновлен
           content:
             application/json:
               schema:
@@ -375,14 +373,13 @@ paths:
   /v1/parent/me/students:
     get:
       tags: [parent]
-      summary: Список связанных учеников родителя
+      summary: Список связанных учеников
       operationId: parentListStudents
-      parameters:
-        - $ref: '#/components/parameters/ActorIdHeader'
-        - $ref: '#/components/parameters/ActorRolesHeader'
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Связанные ученики
+          description: Ученики родителя
           content:
             application/json:
               schema:
@@ -391,6 +388,12 @@ paths:
         '403': { $ref: '#/components/responses/AccessDenied' }
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
     UserId:
       name: user_id
@@ -404,58 +407,28 @@ components:
       required: true
       schema:
         type: string
-    ActorIdQuery:
-      name: actor_id
-      in: query
-      required: true
-      schema:
-        type: string
-    ActorRolesQuery:
-      name: actor_roles
-      in: query
-      required: true
-      description: Роли актора, разделенные запятой.
-      schema:
-        type: string
-    ActorIdHeader:
-      name: X-Actor-Id
-      in: header
-      required: true
-      schema:
-        type: string
-    ActorRolesHeader:
-      name: X-Actor-Roles
-      in: header
-      required: true
-      description: Роли актора, разделенные запятой.
-      schema:
-        type: string
 
   responses:
     Unauthorized:
       description: Не авторизован
       content:
         application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
+          schema: { $ref: '#/components/schemas/Problem' }
     AccessDenied:
       description: Доступ запрещен
       content:
         application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
+          schema: { $ref: '#/components/schemas/Problem' }
     Conflict:
       description: Конфликт или нарушение инварианта
       content:
         application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
+          schema: { $ref: '#/components/schemas/Problem' }
     ValidationError:
       description: Ошибка валидации
       content:
         application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
+          schema: { $ref: '#/components/schemas/Problem' }
 
   schemas:
     Problem:
@@ -479,7 +452,7 @@ components:
 
     CreateUserRequest:
       type: object
-      required: [email, display_name, roles, actor_id]
+      required: [email, display_name, roles]
       properties:
         user_id:
           type: string
@@ -495,8 +468,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Role'
-        actor_id:
-          type: string
 
     UpdateUserRequest:
       type: object
@@ -513,27 +484,10 @@ components:
 
     AssignRoleRequest:
       type: object
-      required: [role, actor_id, actor_roles]
+      required: [role]
       properties:
         role:
           $ref: '#/components/schemas/Role'
-        actor_id:
-          type: string
-        actor_roles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
-
-    ChangeStatusRequest:
-      type: object
-      required: [actor_id, actor_roles]
-      properties:
-        actor_id:
-          type: string
-        actor_roles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
 
     UserResponse:
       type: object
@@ -575,7 +529,7 @@ components:
 
     CreateParentStudentLinkRequest:
       type: object
-      required: [parent_id, student_id, actor_id, actor_roles]
+      required: [parent_id, student_id]
       properties:
         link_id:
           type: string
@@ -584,26 +538,9 @@ components:
           type: string
         student_id:
           type: string
-        actor_id:
-          type: string
-        actor_roles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
         note:
           type: string
           nullable: true
-
-    RemoveParentStudentLinkRequest:
-      type: object
-      required: [actor_id, actor_roles]
-      properties:
-        actor_id:
-          type: string
-        actor_roles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
 
     ParentStudentLinkStatus:
       type: string

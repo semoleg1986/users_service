@@ -15,7 +15,6 @@ class CreateUserRequest(BaseModel):
     display_name: str = Field(min_length=1, max_length=120)
     phone: str | None = None
     roles: list[str] = Field(min_length=1)
-    actor_id: str
 
 
 class UpdateUserRequest(BaseModel):
@@ -30,8 +29,6 @@ class AssignRoleRequest(BaseModel):
     """Request назначения роли."""
 
     role: str
-    actor_id: str
-    actor_roles: list[str]
 
 
 class UserResponse(BaseModel):

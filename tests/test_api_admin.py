@@ -1,12 +1,72 @@
 from __future__ import annotations
 
+import base64
+import json
+import os
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
+import jwt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from src.interface.http.app import create_app
 from src.interface.http.wiring import get_runtime
 
 
+_PRIVATE_KEY = Ed25519PrivateKey.generate()
+_PUBLIC_KEY = _PRIVATE_KEY.public_key()
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _jwks_json() -> str:
+    raw = _PUBLIC_KEY.public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return json.dumps(
+        {
+            "keys": [
+                {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": _b64url(raw),
+                    "alg": "EdDSA",
+                    "use": "sig",
+                    "kid": "test-kid",
+                }
+            ]
+        }
+    )
+
+
+def _access_token(*, sub: str, roles: list[str]) -> str:
+    now = datetime.now(UTC)
+    claims = {
+        "iss": "auth_service",
+        "sub": sub,
+        "roles": roles,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=30)).timestamp()),
+    }
+    return jwt.encode(
+        claims,
+        _PRIVATE_KEY,
+        algorithm="EdDSA",
+        headers={"kid": "test-kid", "typ": "JWT"},
+    )
+
+
+def _auth_headers(*, sub: str, roles: list[str]) -> dict[str, str]:
+    return {"Authorization": f"Bearer {_access_token(sub=sub, roles=roles)}"}
+
+
 def _client() -> TestClient:
+    os.environ["USERS_AUTH_JWKS_JSON"] = _jwks_json()
+    os.environ["USERS_AUTH_ISSUER"] = "auth_service"
     get_runtime.cache_clear()
     return TestClient(create_app())
 
@@ -27,8 +87,8 @@ def test_admin_create_user_and_link() -> None:
             "display_name": "Parent 1",
             "phone": "+995555111222",
             "roles": ["parent"],
-            "actor_id": "admin-1",
         },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert create_parent.status_code == 201, create_parent.text
 
@@ -40,8 +100,8 @@ def test_admin_create_user_and_link() -> None:
             "display_name": "Student 1",
             "phone": None,
             "roles": ["student"],
-            "actor_id": "admin-1",
         },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert create_student.status_code == 201, create_student.text
 
@@ -50,10 +110,9 @@ def test_admin_create_user_and_link() -> None:
         json={
             "parent_id": "parent-1",
             "student_id": "student-1",
-            "actor_id": "parent-1",
-            "actor_roles": ["parent"],
             "note": "my child",
         },
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
     )
     assert create_link.status_code == 201, create_link.text
     body = create_link.json()
@@ -70,12 +129,19 @@ def test_admin_create_user_duplicate_email_returns_409() -> None:
         "display_name": "User 1",
         "phone": None,
         "roles": ["student"],
-        "actor_id": "admin-1",
     }
-    first = client.post("/v1/admin/users", json=payload)
+    first = client.post(
+        "/v1/admin/users",
+        json=payload,
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
     assert first.status_code == 201
 
-    second = client.post("/v1/admin/users", json=payload)
+    second = client.post(
+        "/v1/admin/users",
+        json=payload,
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
     assert second.status_code == 409
     assert second.headers["content-type"].startswith("application/problem+json")
 
@@ -90,8 +156,8 @@ def test_admin_manage_user_and_links_flow() -> None:
             "display_name": "Parent 1",
             "phone": None,
             "roles": ["parent"],
-            "actor_id": "admin-1",
         },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     client.post(
         "/v1/admin/users",
@@ -101,39 +167,43 @@ def test_admin_manage_user_and_links_flow() -> None:
             "display_name": "Student 1",
             "phone": None,
             "roles": ["student"],
-            "actor_id": "admin-1",
         },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
 
-    users = client.get("/v1/admin/users", params={"actor_id": "admin-1", "actor_roles": "admin"})
+    users = client.get(
+        "/v1/admin/users",
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
     assert users.status_code == 200
     assert len(users.json()["items"]) == 2
 
     updated = client.patch(
         "/v1/admin/users/student-1",
-        params={"actor_id": "admin-1", "actor_roles": "admin"},
         json={"display_name": "Student 1A"},
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert updated.status_code == 200
     assert updated.json()["display_name"] == "Student 1A"
 
     assigned = client.post(
         "/v1/admin/users/student-1/roles",
-        json={"role": "teacher", "actor_id": "admin-1", "actor_roles": ["admin"]},
+        json={"role": "teacher"},
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert assigned.status_code == 200
     assert "teacher" in assigned.json()["roles"]
 
     blocked = client.post(
         "/v1/admin/users/student-1/block",
-        json={"actor_id": "admin-1", "actor_roles": ["admin"]},
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert blocked.status_code == 200
     assert blocked.json()["status"] == "blocked"
 
     unblocked = client.post(
         "/v1/admin/users/student-1/unblock",
-        json={"actor_id": "admin-1", "actor_roles": ["admin"]},
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert unblocked.status_code == 200
     assert unblocked.json()["status"] == "active"
@@ -143,21 +213,23 @@ def test_admin_manage_user_and_links_flow() -> None:
         json={
             "parent_id": "parent-1",
             "student_id": "student-1",
-            "actor_id": "parent-1",
-            "actor_roles": ["parent"],
         },
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
     )
     assert link.status_code == 201
     link_id = link.json()["link_id"]
 
-    links = client.get("/v1/admin/links", params={"actor_id": "admin-1", "actor_roles": "admin"})
+    links = client.get(
+        "/v1/admin/links",
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
     assert links.status_code == 200
     assert len(links.json()["items"]) == 1
 
     removed = client.request(
         "DELETE",
         f"/v1/admin/links/{link_id}",
-        json={"actor_id": "admin-1", "actor_roles": ["admin"]},
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     assert removed.status_code == 200
     assert removed.json()["status"] == "removed"
@@ -173,8 +245,8 @@ def test_user_me_and_parent_students() -> None:
             "display_name": "Parent 1",
             "phone": None,
             "roles": ["parent"],
-            "actor_id": "admin-1",
         },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     client.post(
         "/v1/admin/users",
@@ -184,29 +256,28 @@ def test_user_me_and_parent_students() -> None:
             "display_name": "Student 1",
             "phone": None,
             "roles": ["student"],
-            "actor_id": "admin-1",
         },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
     )
     client.post(
         "/v1/admin/links",
         json={
             "parent_id": "parent-1",
             "student_id": "student-1",
-            "actor_id": "parent-1",
-            "actor_roles": ["parent"],
         },
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
     )
 
     me = client.get(
         "/v1/user/me",
-        headers={"X-Actor-Id": "parent-1", "X-Actor-Roles": "parent"},
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
     )
     assert me.status_code == 200
     assert me.json()["user_id"] == "parent-1"
 
     students = client.get(
         "/v1/parent/me/students",
-        headers={"X-Actor-Id": "parent-1", "X-Actor-Roles": "parent"},
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
     )
     assert students.status_code == 200
     assert len(students.json()["items"]) == 1
