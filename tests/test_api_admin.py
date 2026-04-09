@@ -338,3 +338,71 @@ def test_revoke_last_active_admin_role_is_forbidden() -> None:
     )
     assert revoke_not_last.status_code == 200, revoke_not_last.text
     assert "admin" not in revoke_not_last.json()["roles"]
+
+
+def test_admin_create_link_rejects_invalid_roles_and_non_active_profiles() -> None:
+    client = _client()
+    create_teacher = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "teacher-1",
+            "email": "teacher1@example.com",
+            "display_name": "Teacher 1",
+            "phone": None,
+            "roles": ["teacher"],
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert create_teacher.status_code == 201, create_teacher.text
+
+    create_student = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "student-1",
+            "email": "student1@example.com",
+            "display_name": "Student 1",
+            "phone": None,
+            "roles": ["student"],
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert create_student.status_code == 201, create_student.text
+
+    invalid_roles_link = client.post(
+        "/v1/admin/links",
+        json={
+            "parent_id": "teacher-1",
+            "student_id": "student-1",
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert invalid_roles_link.status_code == 409
+
+    create_parent = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "parent-1",
+            "email": "parent1@example.com",
+            "display_name": "Parent 1",
+            "phone": None,
+            "roles": ["parent"],
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert create_parent.status_code == 201, create_parent.text
+
+    blocked = client.post(
+        "/v1/admin/users/student-1/block",
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert blocked.status_code == 200, blocked.text
+
+    non_active_link = client.post(
+        "/v1/admin/links",
+        json={
+            "parent_id": "parent-1",
+            "student_id": "student-1",
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert non_active_link.status_code == 409

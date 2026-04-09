@@ -16,6 +16,7 @@ from src.domain.errors import InvariantViolationError
 from src.domain.links.parent_student_link.entity import ParentStudentLink
 from src.domain.links.parent_student_link.policies import ParentStudentLinkPolicy
 from src.domain.links.parent_student_link.value_objects import LinkNote
+from src.domain.shared.statuses import UserRole, UserStatus
 from src.domain.users.profile.policies import AdminPolicy
 from src.domain.users.profile.policies import ActorContext
 
@@ -39,6 +40,14 @@ class CreateParentStudentLinkHandler:
         student_profile = self._uow.repositories.user_profiles.get(command.student_id)
         if parent_profile is None or student_profile is None:
             raise InvariantViolationError("Parent или student профиль не найден.")
+        if UserRole.PARENT not in parent_profile.roles:
+            raise InvariantViolationError("Связь можно создать только с пользователем роли parent.")
+        if UserRole.STUDENT not in student_profile.roles:
+            raise InvariantViolationError("Связь можно создать только с пользователем роли student.")
+        if parent_profile.status != UserStatus.ACTIVE or student_profile.status != UserStatus.ACTIVE:
+            raise InvariantViolationError(
+                "Связь доступна только для пользователей в статусе active."
+            )
 
         if self._uow.repositories.parent_student_links.get_active_by_pair(
             command.parent_id,

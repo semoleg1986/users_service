@@ -12,6 +12,7 @@ from src.application.links.handlers.create_parent_student_link_handler import (
 from src.application.users.commands.dto import CreateUserProfileCommand
 from src.application.users.handlers.create_user_profile_handler import CreateUserProfileHandler
 from src.domain.errors import AccessDeniedError, InvariantViolationError
+from src.domain.shared.statuses import UserRole
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
     InMemoryUserProfileRepository,
@@ -180,3 +181,97 @@ def test_create_parent_student_link_handler_checks_policy() -> None:
             )
         )
 
+
+def test_create_parent_student_link_handler_rejects_invalid_participant_roles() -> None:
+    uow = _build_uow()
+    clock = FakeClock(datetime(2026, 4, 6, tzinfo=UTC))
+    id_generator = FakeIdGenerator()
+
+    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator)
+    create_link = CreateParentStudentLinkHandler(
+        uow=uow,
+        clock=clock,
+        id_generator=id_generator,
+    )
+
+    create_user(
+        CreateUserProfileCommand(
+            user_id="teacher-1",
+            email="teacher1@example.com",
+            display_name="Teacher 1",
+            phone=None,
+            roles=["teacher"],
+            actor_id="admin-1",
+        )
+    )
+    create_user(
+        CreateUserProfileCommand(
+            user_id="student-1",
+            email="student1@example.com",
+            display_name="Student 1",
+            phone=None,
+            roles=["student"],
+            actor_id="admin-1",
+        )
+    )
+
+    with pytest.raises(InvariantViolationError):
+        create_link(
+            CreateParentStudentLinkCommand(
+                link_id=None,
+                parent_id="teacher-1",
+                student_id="student-1",
+                actor_id="admin-1",
+                actor_roles=["admin"],
+            )
+        )
+
+
+def test_create_parent_student_link_handler_rejects_non_active_profiles() -> None:
+    uow = _build_uow()
+    clock = FakeClock(datetime(2026, 4, 6, tzinfo=UTC))
+    id_generator = FakeIdGenerator()
+
+    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator)
+    create_link = CreateParentStudentLinkHandler(
+        uow=uow,
+        clock=clock,
+        id_generator=id_generator,
+    )
+
+    create_user(
+        CreateUserProfileCommand(
+            user_id="parent-1",
+            email="parent1@example.com",
+            display_name="Parent 1",
+            phone=None,
+            roles=["parent"],
+            actor_id="admin-1",
+        )
+    )
+    create_user(
+        CreateUserProfileCommand(
+            user_id="student-1",
+            email="student1@example.com",
+            display_name="Student 1",
+            phone=None,
+            roles=["student"],
+            actor_id="admin-1",
+        )
+    )
+    student = uow.repositories.user_profiles.get("student-1")
+    assert student is not None
+    assert UserRole.STUDENT in student.roles
+    student.block(now=clock.now(), actor_id="admin-1")
+    uow.repositories.user_profiles.save(student)
+
+    with pytest.raises(InvariantViolationError):
+        create_link(
+            CreateParentStudentLinkCommand(
+                link_id=None,
+                parent_id="parent-1",
+                student_id="student-1",
+                actor_id="admin-1",
+                actor_roles=["admin"],
+            )
+        )
