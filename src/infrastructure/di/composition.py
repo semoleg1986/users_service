@@ -67,6 +67,7 @@ def build_runtime() -> RuntimeContainer:
     settings = Settings.from_env()
     access_token_verifier = JwksAccessTokenVerifier(
         issuer=settings.auth_issuer,
+        audience=settings.auth_audience,
         jwks_url=settings.auth_jwks_url,
         jwks_json=settings.auth_jwks_json,
     )

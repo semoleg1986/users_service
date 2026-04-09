@@ -50,6 +50,7 @@ uvicorn src.interface.http.main:app --reload
 
 ```bash
 export USERS_AUTH_ISSUER='auth_service'
+export USERS_AUTH_AUDIENCE='platform_clients'
 export USERS_AUTH_JWKS_URL='http://localhost:8000/.well-known/jwks.json'
 ```
 

@@ -16,6 +16,7 @@ from src.interface.http.wiring import get_runtime
 
 _PRIVATE_KEY = Ed25519PrivateKey.generate()
 _PUBLIC_KEY = _PRIVATE_KEY.public_key()
+_AUDIENCE = "platform_clients"
 
 
 def _b64url(data: bytes) -> str:
@@ -47,7 +48,10 @@ def _access_token(*, sub: str, roles: list[str]) -> str:
     now = datetime.now(UTC)
     claims = {
         "iss": "auth_service",
+        "aud": _AUDIENCE,
+        "typ": "access",
         "sub": sub,
+        "jti": f"jti-{sub}",
         "roles": roles,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=30)).timestamp()),
@@ -67,6 +71,7 @@ def _auth_headers(*, sub: str, roles: list[str]) -> dict[str, str]:
 def _client() -> TestClient:
     os.environ["USERS_AUTH_JWKS_JSON"] = _jwks_json()
     os.environ["USERS_AUTH_ISSUER"] = "auth_service"
+    os.environ["USERS_AUTH_AUDIENCE"] = _AUDIENCE
     get_runtime.cache_clear()
     return TestClient(create_app())
 

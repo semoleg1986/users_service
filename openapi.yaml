@@ -4,7 +4,7 @@ info:
   version: 0.3.0
   description: |
     Контрактный API users_service.
-    Авторизация выполняется через Bearer access token (JWT, issuer=auth_service).
+    Авторизация выполняется через Bearer access token (JWT, issuer=auth_service, audience=platform_clients, typ=access).
 servers:
   - url: http://localhost:8000
 
@@ -579,4 +579,3 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ParentStudentLinkResponse'
-

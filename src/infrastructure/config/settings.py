@@ -16,6 +16,7 @@ class Settings:
     auth_jwks_url: str
     auth_jwks_json: str | None
     auth_issuer: str
+    auth_audience: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -33,4 +34,5 @@ class Settings:
             ),
             auth_jwks_json=os.getenv("USERS_AUTH_JWKS_JSON"),
             auth_issuer=os.getenv("USERS_AUTH_ISSUER", "auth_service"),
+            auth_audience=os.getenv("USERS_AUTH_AUDIENCE", "platform_clients"),
         )
