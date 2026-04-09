@@ -13,7 +13,7 @@ from src.application.users.commands.dto import (
     UpdateUserProfileCommand,
 )
 from src.domain.errors import InvariantViolationError
-from src.domain.shared.statuses import UserRole
+from src.domain.shared.statuses import UserRole, UserStatus
 from src.domain.users.profile.policies import ActorContext, AdminPolicy, SelfServicePolicy
 from src.domain.users.profile.value_objects import DisplayName, Email, Phone
 
@@ -93,8 +93,17 @@ class RevokeRoleHandler:
         profile = self._uow.repositories.user_profiles.get(command.user_id)
         if profile is None:
             raise InvariantViolationError("Пользователь не найден.")
+        role = UserRole(command.role)
+        if role == UserRole.ADMIN and UserRole.ADMIN in profile.roles:
+            active_admins = self._uow.repositories.user_profiles.list(
+                role=UserRole.ADMIN.value,
+                status=UserStatus.ACTIVE.value,
+            )
+            active_admin_ids = {item.user_id for item in active_admins}
+            if active_admin_ids == {profile.user_id}:
+                raise InvariantViolationError("Нельзя снять роль у последнего активного admin.")
         profile.revoke_role(
-            role=UserRole(command.role),
+            role=role,
             now=self._clock.now(),
             actor_id=command.actor_id,
         )
@@ -130,4 +139,3 @@ class ChangeUserStatusHandler:
         self._uow.repositories.user_profiles.save(profile)
         self._uow.commit()
         return to_user_profile_result(profile)
-

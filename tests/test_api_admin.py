@@ -282,3 +282,54 @@ def test_user_me_and_parent_students() -> None:
     assert students.status_code == 200
     assert len(students.json()["items"]) == 1
     assert students.json()["items"][0]["user_id"] == "student-1"
+
+
+def test_revoke_last_active_admin_role_is_forbidden() -> None:
+    client = _client()
+    create_admin_1 = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "admin-1",
+            "email": "admin1@example.com",
+            "display_name": "Admin 1",
+            "phone": None,
+            "roles": ["admin"],
+        },
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert create_admin_1.status_code == 201, create_admin_1.text
+
+    revoke_last = client.delete(
+        "/v1/admin/users/admin-1/roles?role=admin",
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert revoke_last.status_code == 409
+    assert revoke_last.headers["content-type"].startswith("application/problem+json")
+    assert "последнего активного admin" in revoke_last.json()["detail"]
+
+    create_admin_2 = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "admin-2",
+            "email": "admin2@example.com",
+            "display_name": "Admin 2",
+            "phone": None,
+            "roles": ["admin"],
+        },
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert create_admin_2.status_code == 201, create_admin_2.text
+
+    assign_teacher = client.post(
+        "/v1/admin/users/admin-1/roles",
+        json={"role": "teacher"},
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert assign_teacher.status_code == 200, assign_teacher.text
+
+    revoke_not_last = client.delete(
+        "/v1/admin/users/admin-1/roles?role=admin",
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert revoke_not_last.status_code == 200, revoke_not_last.text
+    assert "admin" not in revoke_not_last.json()["roles"]
