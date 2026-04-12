@@ -85,6 +85,7 @@ def build_runtime() -> RuntimeContainer:
             )
         )
     else:
+        from src.infrastructure.db.sqlalchemy import models as _models  # noqa: F401
         from src.infrastructure.db.sqlalchemy.base import Base
         from src.infrastructure.db.sqlalchemy.session import (
             build_engine,
