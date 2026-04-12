@@ -10,6 +10,7 @@ servers:
 
 tags:
   - name: health
+  - name: internal
   - name: admin
   - name: user
   - name: parent
@@ -32,6 +33,27 @@ paths:
                   status:
                     type: string
                     const: ok
+
+  /internal/v1/teachers/{teacher_id}:
+    get:
+      tags: [internal]
+      summary: Проверить профиль преподавателя по ID
+      operationId: internalGetTeacherById
+      parameters:
+        - name: teacher_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Активный преподаватель найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherInfoResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /v1/admin/users:
     post:
@@ -424,6 +446,11 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Сущность не найдена
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     ValidationError:
       description: Ошибка валидации
       content:
@@ -526,6 +553,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserResponse'
+
+    TeacherInfoResponse:
+      type: object
+      required: [teacher_id, display_name, status, roles]
+      properties:
+        teacher_id:
+          type: string
+        display_name:
+          type: string
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
 
     CreateParentStudentLinkRequest:
       type: object
