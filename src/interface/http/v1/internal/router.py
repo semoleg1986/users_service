@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
+from src.application.links.queries.dto import ListParentStudentLinksQuery
 from src.application.users.queries.dto import GetUserByIdQuery
 from src.domain.errors import InvariantViolationError
-from src.interface.http.v1.schemas.internal import TeacherInfoResponse
+from src.interface.http.v1.schemas.internal import (
+    ParentStudentRelationResponse,
+    TeacherInfoResponse,
+)
 from src.interface.http.wiring import get_facade, get_service_token
 
 router = APIRouter(prefix="/internal/v1", tags=["internal"])
@@ -48,4 +52,37 @@ def get_teacher_info(
         display_name=user.display_name,
         status=user.status,
         roles=user.roles,
+    )
+
+
+@router.get(
+    "/parent-students/{parent_id}/{student_id}",
+    response_model=ParentStudentRelationResponse,
+)
+def check_parent_student_relation(
+    parent_id: str,
+    student_id: str,
+    service_token: str | None = Header(default=None, alias="X-Service-Token"),
+    expected_token: str = Depends(get_service_token),
+    facade=Depends(get_facade),
+) -> ParentStudentRelationResponse:
+    """Проверяет наличие активной связи parent-student для межсервисной интеграции."""
+
+    if not service_token:
+        raise HTTPException(status_code=401, detail="Требуется X-Service-Token.")
+    if service_token != expected_token:
+        raise HTTPException(status_code=401, detail="Некорректный X-Service-Token.")
+
+    links = facade.query(
+        ListParentStudentLinksQuery(
+            actor_id="internal-users-service",
+            actor_roles=["admin"],
+            parent_id=parent_id,
+            student_id=student_id,
+        )
+    )
+    return ParentStudentRelationResponse(
+        parent_id=parent_id,
+        student_id=student_id,
+        has_relation=bool(links),
     )

@@ -12,3 +12,11 @@ class TeacherInfoResponse(BaseModel):
     display_name: str
     status: str
     roles: list[str]
+
+
+class ParentStudentRelationResponse(BaseModel):
+    """Response проверки связи parent-student для межсервисного вызова."""
+
+    parent_id: str
+    student_id: str
+    has_relation: bool

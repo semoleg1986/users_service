@@ -127,3 +127,62 @@ def test_internal_teacher_info_returns_404_for_non_teacher() -> None:
         headers={"X-Service-Token": "internal-token"},
     )
     assert response.status_code == 404
+
+
+def test_internal_parent_student_relation_returns_true_for_active_link() -> None:
+    client = _client()
+    admin_headers = _auth_headers(sub="admin-1", roles=["admin"])
+
+    create_parent = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "parent-1",
+            "email": "parent1@example.com",
+            "display_name": "Parent One",
+            "phone": None,
+            "roles": ["parent"],
+        },
+        headers=admin_headers,
+    )
+    assert create_parent.status_code == 201, create_parent.text
+
+    create_student = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "student-1",
+            "email": "student1@example.com",
+            "display_name": "Student One",
+            "phone": None,
+            "roles": ["student"],
+        },
+        headers=admin_headers,
+    )
+    assert create_student.status_code == 201, create_student.text
+
+    create_link = client.post(
+        "/v1/admin/links",
+        json={"parent_id": "parent-1", "student_id": "student-1", "note": "smoke"},
+        headers=admin_headers,
+    )
+    assert create_link.status_code == 201, create_link.text
+
+    response = client.get(
+        "/internal/v1/parent-students/parent-1/student-1",
+        headers={"X-Service-Token": "internal-token"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["has_relation"] is True
+
+
+def test_internal_parent_student_relation_returns_false_for_missing_link() -> None:
+    client = _client()
+    response = client.get(
+        "/internal/v1/parent-students/parent-404/student-404",
+        headers={"X-Service-Token": "internal-token"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "parent_id": "parent-404",
+        "student_id": "student-404",
+        "has_relation": False,
+    }
