@@ -6,10 +6,12 @@ from pydantic import BaseModel, ValidationError
 
 from src.domain.errors import AccessDeniedError
 from src.interface.http.errors import register_exception_handlers
+from src.interface.http.observability import install_observability
 
 
 def test_http_error_handlers_cover_access_and_validation_cases() -> None:
     app = FastAPI()
+    install_observability(app)
     register_exception_handlers(app)
 
     @app.get("/denied")
@@ -32,8 +34,10 @@ def test_http_error_handlers_cover_access_and_validation_cases() -> None:
 
     client = TestClient(app)
 
-    denied = client.get("/denied")
+    denied = client.get("/denied", headers={"X-Request-ID": "req-users-001"})
     assert denied.status_code == 403
+    assert denied.headers.get("X-Request-ID") == "req-users-001"
+    assert denied.json().get("request_id") == "req-users-001"
 
     pyd = client.get("/pydantic")
     assert pyd.status_code == 422

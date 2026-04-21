@@ -15,6 +15,10 @@ from src.interface.http.problem_types import (
 )
 
 
+def _request_id(request: Request) -> str | None:
+    return getattr(request.state, "request_id", None)
+
+
 def _problem(
     *,
     request: Request,
@@ -31,6 +35,7 @@ def _problem(
             "status": status,
             "detail": detail,
             "instance": str(request.url.path),
+            "request_id": _request_id(request),
         },
         media_type="application/problem+json",
     )
@@ -40,7 +45,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     """Регистрирует обработчики ошибок HTTP слоя."""
 
     @app.exception_handler(InvariantViolationError)
-    async def invariant_error(request: Request, exc: InvariantViolationError) -> JSONResponse:
+    async def invariant_error(
+        request: Request, exc: InvariantViolationError
+    ) -> JSONResponse:
         return _problem(
             request=request,
             status=409,
