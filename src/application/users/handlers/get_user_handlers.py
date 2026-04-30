@@ -71,11 +71,15 @@ class ListParentStudentsHandler:
         actor = ActorContext.from_claims(query.actor_id, query.actor_roles)
         if UserRole.PARENT not in actor.roles and UserRole.ADMIN not in actor.roles:
             raise AccessDeniedError("Операция доступна parent или admin.")
-        links = self._uow.repositories.parent_student_links.list_active_by_parent(query.actor_id)
+        links = self._uow.repositories.parent_student_links.list_active_by_parent(
+            query.actor_id
+        )
         result: list[UserProfileResult] = []
         for link in links:
             student = self._uow.repositories.user_profiles.get(link.student_id)
             if student is not None:
                 result.append(to_user_profile_result(student))
-        return result
-
+        sort_value = (query.sort or "created_at:asc").strip().lower()
+        reverse = sort_value.endswith(":desc")
+        result = sorted(result, key=lambda item: item.created_at, reverse=reverse)
+        return result[query.offset : query.offset + query.limit]

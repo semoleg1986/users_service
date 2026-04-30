@@ -38,4 +38,6 @@ class ListParentStudentsQuery:
 
     actor_id: str
     actor_roles: list[str]
-
+    limit: int = 20
+    offset: int = 0
+    sort: str = "created_at:asc"

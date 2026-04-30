@@ -132,6 +132,9 @@ def test_postgres_admin_user_and_links_flow() -> None:
         headers=_auth_headers(sub="parent-it-1", roles=["parent"]),
     )
     assert parent_students.status_code == 200, parent_students.text
+    assert parent_students.json()["limit"] == 20
+    assert parent_students.json()["offset"] == 0
+    assert parent_students.json()["sort"] == "created_at:asc"
     assert len(parent_students.json()["items"]) == 1
     assert parent_students.json()["items"][0]["user_id"] == "student-it-1"
 

@@ -213,6 +213,16 @@ def test_get_my_profile_and_parent_students_branches() -> None:
         ListParentStudentsQuery(actor_id="parent-1", actor_roles=["parent"])
     )
     assert len(items) == 1
+    paged = list_handler(
+        ListParentStudentsQuery(
+            actor_id="parent-1",
+            actor_roles=["parent"],
+            limit=1,
+            offset=0,
+            sort="created_at:desc",
+        )
+    )
+    assert len(paged) == 1
 
     with pytest.raises(AccessDeniedError):
         list_handler(

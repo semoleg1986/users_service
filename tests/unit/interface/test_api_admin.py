@@ -292,8 +292,57 @@ def test_user_me_and_parent_students() -> None:
         headers=_auth_headers(sub="parent-1", roles=["parent"]),
     )
     assert students.status_code == 200
+    assert students.json()["limit"] == 20
+    assert students.json()["offset"] == 0
+    assert students.json()["sort"] == "created_at:asc"
     assert len(students.json()["items"]) == 1
     assert students.json()["items"][0]["user_id"] == "student-1"
+
+
+def test_parent_students_pagination_and_sort() -> None:
+    client = _client()
+    client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "parent-1",
+            "email": "parent1@example.com",
+            "display_name": "Parent 1",
+            "phone": None,
+            "roles": ["parent"],
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    for idx in (1, 2):
+        client.post(
+            "/v1/admin/users",
+            json={
+                "user_id": f"student-{idx}",
+                "email": f"student{idx}@example.com",
+                "display_name": f"Student {idx}",
+                "phone": None,
+                "roles": ["student"],
+            },
+            headers=_auth_headers(sub="admin-1", roles=["admin"]),
+        )
+        client.post(
+            "/v1/admin/links",
+            json={
+                "parent_id": "parent-1",
+                "student_id": f"student-{idx}",
+            },
+            headers=_auth_headers(sub="parent-1", roles=["parent"]),
+        )
+
+    paged = client.get(
+        "/v1/parent/me/students?limit=1&offset=1&sort=created_at:desc",
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
+    )
+    assert paged.status_code == 200
+    assert paged.json()["limit"] == 1
+    assert paged.json()["offset"] == 1
+    assert paged.json()["sort"] == "created_at:desc"
+    assert len(paged.json()["items"]) == 1
+    assert paged.json()["items"][0]["user_id"] == "student-1"
 
 
 def test_revoke_last_active_admin_role_is_forbidden() -> None:

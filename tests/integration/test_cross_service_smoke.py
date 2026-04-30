@@ -132,3 +132,25 @@ def test_auth_token_accepted_by_users_service(auth_service_base_url: str) -> Non
     body = response.json()
     assert body["user_id"] == "cross-student-1"
     assert "student" in body["roles"]
+
+
+def test_users_service_rejects_admin_create_without_bearer(
+    auth_service_base_url: str,
+) -> None:
+    del auth_service_base_url
+    os.environ["USERS_AUTH_ISSUER"] = "auth_service"
+    os.environ["USERS_AUTH_AUDIENCE"] = _AUDIENCE
+    get_runtime.cache_clear()
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "cross-student-no-token",
+            "email": "cross-student-no-token@example.com",
+            "display_name": "Cross Student No Token",
+            "phone": None,
+            "roles": ["student"],
+        },
+    )
+    assert response.status_code == 401, response.text

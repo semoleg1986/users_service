@@ -49,3 +49,12 @@ class UserListResponse(BaseModel):
     """Response списка пользователей."""
 
     items: list[UserResponse]
+
+
+class PaginatedUserListResponse(BaseModel):
+    """Response списка пользователей с пагинацией."""
+
+    items: list[UserResponse]
+    limit: int
+    offset: int
+    sort: str
