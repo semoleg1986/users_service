@@ -347,6 +347,38 @@ def test_revoke_last_active_admin_role_is_forbidden() -> None:
     assert "admin" not in revoke_not_last.json()["roles"]
 
 
+def test_block_or_archive_last_active_admin_is_forbidden() -> None:
+    client = _client()
+    create_admin_1 = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "admin-1",
+            "email": "admin1@example.com",
+            "display_name": "Admin 1",
+            "phone": None,
+            "roles": ["admin"],
+        },
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert create_admin_1.status_code == 201, create_admin_1.text
+
+    block_last = client.post(
+        "/v1/admin/users/admin-1/block",
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert block_last.status_code == 409
+    assert block_last.headers["content-type"].startswith("application/problem+json")
+    assert "последнего активного admin" in block_last.json()["detail"]
+
+    archive_last = client.post(
+        "/v1/admin/users/admin-1/archive",
+        headers=_auth_headers(sub="root-admin", roles=["admin"]),
+    )
+    assert archive_last.status_code == 409
+    assert archive_last.headers["content-type"].startswith("application/problem+json")
+    assert "последнего активного admin" in archive_last.json()["detail"]
+
+
 def test_admin_create_link_rejects_invalid_roles_and_non_active_profiles() -> None:
     client = _client()
     create_teacher = client.post(

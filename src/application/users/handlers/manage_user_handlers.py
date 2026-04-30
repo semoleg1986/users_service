@@ -14,7 +14,11 @@ from src.application.users.commands.dto import (
 )
 from src.domain.errors import InvariantViolationError
 from src.domain.shared.statuses import UserRole, UserStatus
-from src.domain.users.profile.policies import ActorContext, AdminPolicy, SelfServicePolicy
+from src.domain.users.profile.policies import (
+    ActorContext,
+    AdminPolicy,
+    SelfServicePolicy,
+)
 from src.domain.users.profile.value_objects import DisplayName, Email, Phone
 
 
@@ -30,7 +34,9 @@ class UpdateUserProfileHandler:
         if UserRole.ADMIN in actor.roles:
             AdminPolicy.ensure_can_manage_users(actor)
         else:
-            SelfServicePolicy.ensure_can_edit_profile(actor, target_user_id=command.user_id)
+            SelfServicePolicy.ensure_can_edit_profile(
+                actor, target_user_id=command.user_id
+            )
 
         profile = self._uow.repositories.user_profiles.get(command.user_id)
         if profile is None:
@@ -40,8 +46,12 @@ class UpdateUserProfileHandler:
         if command.email is not None and command.email != profile.email.value:
             existing = self._uow.repositories.user_profiles.get_by_email(command.email)
             if existing is not None and existing.user_id != profile.user_id:
-                raise InvariantViolationError("Пользователь с таким email уже существует.")
-            profile.change_email(email=Email(command.email), now=now, actor_id=command.actor_id)
+                raise InvariantViolationError(
+                    "Пользователь с таким email уже существует."
+                )
+            profile.change_email(
+                email=Email(command.email), now=now, actor_id=command.actor_id
+            )
         if command.display_name is not None:
             profile.change_display_name(
                 display_name=DisplayName(command.display_name),
@@ -101,7 +111,9 @@ class RevokeRoleHandler:
             )
             active_admin_ids = {item.user_id for item in active_admins}
             if active_admin_ids == {profile.user_id}:
-                raise InvariantViolationError("Нельзя снять роль у последнего активного admin.")
+                raise InvariantViolationError(
+                    "Нельзя снять роль у последнего активного admin."
+                )
         profile.revoke_role(
             role=role,
             now=self._clock.now(),
@@ -125,6 +137,8 @@ class ChangeUserStatusHandler:
         profile = self._uow.repositories.user_profiles.get(command.user_id)
         if profile is None:
             raise InvariantViolationError("Пользователь не найден.")
+        if command.action in {"block", "archive"}:
+            self._ensure_not_last_active_admin(profile)
         now = self._clock.now()
         if command.action == "block":
             profile.block(now=now, actor_id=command.actor_id)
@@ -139,3 +153,18 @@ class ChangeUserStatusHandler:
         self._uow.repositories.user_profiles.save(profile)
         self._uow.commit()
         return to_user_profile_result(profile)
+
+    def _ensure_not_last_active_admin(self, profile) -> None:
+        if UserRole.ADMIN not in profile.roles:
+            return
+        if profile.status != UserStatus.ACTIVE:
+            return
+        active_admins = self._uow.repositories.user_profiles.list(
+            role=UserRole.ADMIN.value,
+            status=UserStatus.ACTIVE.value,
+        )
+        active_admin_ids = {item.user_id for item in active_admins}
+        if active_admin_ids == {profile.user_id}:
+            raise InvariantViolationError(
+                "Нельзя деактивировать последнего активного admin."
+            )

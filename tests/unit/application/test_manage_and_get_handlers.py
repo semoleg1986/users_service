@@ -31,7 +31,10 @@ from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
     InMemoryUserProfileRepository,
 )
-from src.infrastructure.db.inmemory.uow import InMemoryRepositoryProvider, InMemoryUnitOfWork
+from src.infrastructure.db.inmemory.uow import (
+    InMemoryRepositoryProvider,
+    InMemoryUnitOfWork,
+)
 
 
 @dataclass
@@ -149,6 +152,33 @@ def test_change_status_handler_unknown_action_and_not_found() -> None:
             )
         )
 
+
+def test_change_status_handler_forbids_block_and_archive_for_last_active_admin() -> (
+    None
+):
+    uow, clock = _uow_with_profiles()
+    handler = ChangeUserStatusHandler(uow=uow, clock=clock)
+
+    with pytest.raises(InvariantViolationError):
+        handler(
+            ChangeUserStatusCommand(
+                user_id="admin-1",
+                action="block",
+                actor_id="admin-1",
+                actor_roles=["admin"],
+            )
+        )
+
+    with pytest.raises(InvariantViolationError):
+        handler(
+            ChangeUserStatusCommand(
+                user_id="admin-1",
+                action="archive",
+                actor_id="admin-1",
+                actor_roles=["admin"],
+            )
+        )
+
     with pytest.raises(InvariantViolationError):
         handler(
             ChangeUserStatusCommand(
@@ -179,8 +209,12 @@ def test_get_my_profile_and_parent_students_branches() -> None:
     uow.repositories.parent_student_links.save(link)
 
     list_handler = ListParentStudentsHandler(uow=uow)
-    items = list_handler(ListParentStudentsQuery(actor_id="parent-1", actor_roles=["parent"]))
+    items = list_handler(
+        ListParentStudentsQuery(actor_id="parent-1", actor_roles=["parent"])
+    )
     assert len(items) == 1
 
     with pytest.raises(AccessDeniedError):
-        list_handler(ListParentStudentsQuery(actor_id="teacher-1", actor_roles=["teacher"]))
+        list_handler(
+            ListParentStudentsQuery(actor_id="teacher-1", actor_roles=["teacher"])
+        )
