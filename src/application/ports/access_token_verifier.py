@@ -9,5 +9,4 @@ class AccessTokenVerifier(Protocol):
     """Контракт декодирования и верификации access token."""
 
     def decode_access(self, access_token: str) -> dict[str, str | list[str]]:
-        """Возвращает claims `sub` и `roles` из access token."""
-
+        """Возвращает claims `sub`, опциональный `user_id` и `roles` из access token."""
