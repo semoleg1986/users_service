@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 
 from src.interface.http.app import create_app
+from src.interface.http.observability import reset_metrics
 from src.interface.http.wiring import get_runtime
 
 _PRIVATE_KEY = Ed25519PrivateKey.generate()
@@ -72,6 +73,7 @@ def _client() -> TestClient:
     os.environ["USERS_AUTH_ISSUER"] = "auth_service"
     os.environ["USERS_AUTH_AUDIENCE"] = _AUDIENCE
     os.environ["USERS_SERVICE_TOKEN"] = "internal-token"
+    reset_metrics()
     get_runtime.cache_clear()
     return TestClient(create_app())
 
@@ -186,3 +188,10 @@ def test_internal_parent_student_relation_returns_false_for_missing_link() -> No
         "student_id": "student-404",
         "has_relation": False,
     }
+
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    assert (
+        'internal_parent_student_lookup_failures_total{result="not_found"} 1'
+        in metrics.text
+    )

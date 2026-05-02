@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from src.application.links.queries.dto import ListParentStudentLinksQuery
 from src.application.users.queries.dto import GetUserByIdQuery
 from src.domain.errors import InvariantViolationError
+from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.internal import (
     ParentStudentRelationResponse,
     TeacherInfoResponse,
@@ -81,6 +82,12 @@ def check_parent_student_relation(
             student_id=student_id,
         )
     )
+    if not links:
+        increment_counter(
+            "internal_parent_student_lookup_failures_total",
+            "Total internal parent-student lookup misses.",
+            result="not_found",
+        )
     return ParentStudentRelationResponse(
         parent_id=parent_id,
         student_id=student_id,

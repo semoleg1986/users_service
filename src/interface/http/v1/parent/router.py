@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 
 from src.application.users.queries.dto import ListParentStudentsQuery
 from src.interface.http.common.actor import HttpActor, get_http_actor
+from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.users import PaginatedUserListResponse, UserResponse
 from src.interface.http.wiring import get_facade
 
@@ -32,6 +33,12 @@ def list_my_students(
             offset=offset,
             sort=sort,
         )
+    )
+    increment_counter(
+        "parent_students_list_requests_total",
+        "Total parent student list requests.",
+        result="success",
+        sort=sort,
     )
     return PaginatedUserListResponse(
         items=[UserResponse(**asdict(item)) for item in result],

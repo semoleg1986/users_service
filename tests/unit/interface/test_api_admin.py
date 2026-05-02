@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 
 from src.interface.http.app import create_app
+from src.interface.http.observability import reset_metrics
 from src.interface.http.wiring import get_runtime
 
 _PRIVATE_KEY = Ed25519PrivateKey.generate()
@@ -71,6 +72,7 @@ def _client() -> TestClient:
     os.environ["USERS_AUTH_JWKS_JSON"] = _jwks_json()
     os.environ["USERS_AUTH_ISSUER"] = "auth_service"
     os.environ["USERS_AUTH_AUDIENCE"] = _AUDIENCE
+    reset_metrics()
     get_runtime.cache_clear()
     return TestClient(create_app())
 
@@ -131,6 +133,10 @@ def test_admin_create_user_and_link() -> None:
     assert body["status"] == "active"
     assert body["parent_id"] == "parent-1"
     assert body["student_id"] == "student-1"
+
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    assert 'parent_student_links_created_total{result="success"} 1' in metrics.text
 
 
 def test_admin_create_user_duplicate_email_returns_409() -> None:
@@ -298,6 +304,13 @@ def test_user_me_and_parent_students() -> None:
     assert len(students.json()["items"]) == 1
     assert students.json()["items"][0]["user_id"] == "student-1"
 
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    assert (
+        'parent_students_list_requests_total{result="success",sort="created_at:asc"} 1'
+        in metrics.text
+    )
+
 
 def test_parent_students_pagination_and_sort() -> None:
     client = _client()
@@ -343,6 +356,13 @@ def test_parent_students_pagination_and_sort() -> None:
     assert paged.json()["sort"] == "created_at:desc"
     assert len(paged.json()["items"]) == 1
     assert paged.json()["items"][0]["user_id"] == "student-1"
+
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    assert (
+        'parent_students_list_requests_total{result="success",sort="created_at:desc"} 1'
+        in metrics.text
+    )
 
 
 def test_revoke_last_active_admin_role_is_forbidden() -> None:

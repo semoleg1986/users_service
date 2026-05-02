@@ -20,6 +20,7 @@ from src.application.users.commands.dto import (
 )
 from src.application.users.queries.dto import GetUserByIdQuery, ListUsersQuery
 from src.interface.http.common.actor import HttpActor, get_http_actor
+from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.links import (
     CreateParentStudentLinkRequest,
     ParentStudentLinkListResponse,
@@ -75,6 +76,11 @@ def create_parent_student_link(
             actor_roles=actor.roles,
             note=payload.note,
         )
+    )
+    increment_counter(
+        "parent_student_links_created_total",
+        "Total created parent-student links.",
+        result="success",
     )
     return ParentStudentLinkResponse(**asdict(result))
 
