@@ -19,6 +19,10 @@ def _request_id(request: Request) -> str | None:
     return getattr(request.state, "request_id", None)
 
 
+def _correlation_id(request: Request) -> str | None:
+    return getattr(request.state, "correlation_id", None)
+
+
 def _problem(
     *,
     request: Request,
@@ -36,8 +40,21 @@ def _problem(
             "detail": detail,
             "instance": str(request.url.path),
             "request_id": _request_id(request),
+            "correlation_id": _correlation_id(request),
         },
         media_type="application/problem+json",
+        headers={
+            **(
+                {"X-Request-ID": _request_id(request)}
+                if _request_id(request) is not None
+                else {}
+            ),
+            **(
+                {"X-Correlation-ID": _correlation_id(request)}
+                if _correlation_id(request) is not None
+                else {}
+            ),
+        },
     )
 
 
