@@ -4,13 +4,18 @@ from datetime import UTC, datetime
 
 import pytest
 
-from src.application.links.commands.dto import CreateParentStudentLinkCommand, RemoveParentStudentLinkCommand
+from src.application.links.commands.dto import (
+    CreateParentStudentLinkCommand,
+    RemoveParentStudentLinkCommand,
+)
 from src.application.links.handlers.create_parent_student_link_handler import (
     CreateParentStudentLinkHandler,
     RemoveParentStudentLinkHandler,
 )
 from src.application.users.commands.dto import CreateUserProfileCommand
-from src.application.users.handlers.create_user_profile_handler import CreateUserProfileHandler
+from src.application.users.handlers.create_user_profile_handler import (
+    CreateUserProfileHandler,
+)
 from src.application.users.handlers.get_user_handlers import GetUserByIdHandler
 from src.application.users.queries.dto import GetUserByIdQuery
 from src.domain.errors import AccessDeniedError, InvariantViolationError
@@ -18,7 +23,10 @@ from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
     InMemoryUserProfileRepository,
 )
-from src.infrastructure.db.inmemory.uow import InMemoryRepositoryProvider, InMemoryUnitOfWork
+from src.infrastructure.db.inmemory.uow import (
+    InMemoryRepositoryProvider,
+    InMemoryUnitOfWork,
+)
 
 
 class _Clock:
@@ -47,18 +55,24 @@ def _ctx() -> tuple[InMemoryUnitOfWork, _Clock, _Ids]:
 
 def test_get_user_by_id_requires_admin_and_not_found() -> None:
     uow, _, _ = _ctx()
-    handler = GetUserByIdHandler(uow=uow)
+    handler = GetUserByIdHandler(uow_factory=lambda: uow)
 
     with pytest.raises(AccessDeniedError):
-        handler(GetUserByIdQuery(user_id="u-1", actor_id="u-1", actor_roles=["student"]))
+        handler(
+            GetUserByIdQuery(user_id="u-1", actor_id="u-1", actor_roles=["student"])
+        )
 
     with pytest.raises(InvariantViolationError):
-        handler(GetUserByIdQuery(user_id="u-1", actor_id="admin-1", actor_roles=["admin"]))
+        handler(
+            GetUserByIdQuery(user_id="u-1", actor_id="admin-1", actor_roles=["admin"])
+        )
 
 
 def test_link_handlers_duplicate_and_remove_missing() -> None:
     uow, clock, ids = _ctx()
-    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=ids)
+    create_user = CreateUserProfileHandler(
+        uow_factory=lambda: uow, clock=clock, id_generator=ids
+    )
 
     create_user(
         CreateUserProfileCommand(
@@ -91,7 +105,9 @@ def test_link_handlers_duplicate_and_remove_missing() -> None:
         )
     )
 
-    create_link = CreateParentStudentLinkHandler(uow=uow, clock=clock, id_generator=ids)
+    create_link = CreateParentStudentLinkHandler(
+        uow_factory=lambda: uow, clock=clock, id_generator=ids
+    )
     create_link(
         CreateParentStudentLinkCommand(
             link_id="link-1",
@@ -113,7 +129,7 @@ def test_link_handlers_duplicate_and_remove_missing() -> None:
             )
         )
 
-    remove = RemoveParentStudentLinkHandler(uow=uow, clock=clock)
+    remove = RemoveParentStudentLinkHandler(uow_factory=lambda: uow, clock=clock)
     with pytest.raises(InvariantViolationError):
         remove(
             RemoveParentStudentLinkCommand(

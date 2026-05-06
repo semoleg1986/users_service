@@ -89,7 +89,7 @@ def _uow_with_profiles() -> tuple[InMemoryUnitOfWork, _Clock]:
 
 def test_update_profile_self_service_and_duplicate_email_branch() -> None:
     uow, clock = _uow_with_profiles()
-    handler = UpdateUserProfileHandler(uow=uow, clock=clock)
+    handler = UpdateUserProfileHandler(uow_factory=lambda: uow, clock=clock)
 
     result = handler(
         UpdateUserProfileCommand(
@@ -114,8 +114,8 @@ def test_update_profile_self_service_and_duplicate_email_branch() -> None:
 
 def test_assign_and_revoke_role_handlers_with_last_admin_guard() -> None:
     uow, clock = _uow_with_profiles()
-    assign = AssignRoleHandler(uow=uow, clock=clock)
-    revoke = RevokeRoleHandler(uow=uow, clock=clock)
+    assign = AssignRoleHandler(uow_factory=lambda: uow, clock=clock)
+    revoke = RevokeRoleHandler(uow_factory=lambda: uow, clock=clock)
 
     assigned = assign(
         AssignRoleCommand(
@@ -140,7 +140,7 @@ def test_assign_and_revoke_role_handlers_with_last_admin_guard() -> None:
 
 def test_change_status_handler_unknown_action_and_not_found() -> None:
     uow, clock = _uow_with_profiles()
-    handler = ChangeUserStatusHandler(uow=uow, clock=clock)
+    handler = ChangeUserStatusHandler(uow_factory=lambda: uow, clock=clock)
 
     with pytest.raises(InvariantViolationError):
         handler(
@@ -157,7 +157,7 @@ def test_change_status_handler_forbids_block_and_archive_for_last_active_admin()
     None
 ):
     uow, clock = _uow_with_profiles()
-    handler = ChangeUserStatusHandler(uow=uow, clock=clock)
+    handler = ChangeUserStatusHandler(uow_factory=lambda: uow, clock=clock)
 
     with pytest.raises(InvariantViolationError):
         handler(
@@ -194,7 +194,7 @@ def test_get_my_profile_and_parent_students_branches() -> None:
     uow, clock = _uow_with_profiles()
     del clock
 
-    get_me = GetMyProfileHandler(uow=uow)
+    get_me = GetMyProfileHandler(uow_factory=lambda: uow)
     with pytest.raises(InvariantViolationError):
         get_me(GetMyProfileQuery(actor_id="missing", actor_roles=["parent"]))
 
@@ -208,7 +208,7 @@ def test_get_my_profile_and_parent_students_branches() -> None:
     link.activate(now=datetime(2026, 4, 9, tzinfo=UTC), actor_id="admin-1")
     uow.repositories.parent_student_links.save(link)
 
-    list_handler = ListParentStudentsHandler(uow=uow)
+    list_handler = ListParentStudentsHandler(uow_factory=lambda: uow)
     items = list_handler(
         ListParentStudentsQuery(actor_id="parent-1", actor_roles=["parent"])
     )

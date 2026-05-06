@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from src.application.common.dto import UserProfileResult
 from src.application.common.mappers import to_user_profile_result
-from src.application.ports.unit_of_work import UnitOfWork
+from src.application.ports.unit_of_work import UnitOfWorkFactory
 from src.application.users.queries.dto import (
     GetMyProfileQuery,
     GetUserByIdQuery,
@@ -19,67 +19,71 @@ from src.domain.users.profile.policies import ActorContext, AdminPolicy
 class GetUserByIdHandler:
     """Возвращает профиль пользователя по id."""
 
-    def __init__(self, *, uow: UnitOfWork) -> None:
-        self._uow = uow
+    def __init__(self, *, uow_factory: UnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
 
     def __call__(self, query: GetUserByIdQuery) -> UserProfileResult:
         actor = ActorContext.from_claims(query.actor_id, query.actor_roles)
         AdminPolicy.ensure_can_manage_users(actor)
-        profile = self._uow.repositories.user_profiles.get(query.user_id)
-        if profile is None:
-            raise InvariantViolationError("Пользователь не найден.")
-        return to_user_profile_result(profile)
+        with self._uow_factory() as uow:
+            profile = uow.repositories.user_profiles.get(query.user_id)
+            if profile is None:
+                raise InvariantViolationError("Пользователь не найден.")
+            return to_user_profile_result(profile)
 
 
 class ListUsersHandler:
     """Возвращает список профилей пользователей."""
 
-    def __init__(self, *, uow: UnitOfWork) -> None:
-        self._uow = uow
+    def __init__(self, *, uow_factory: UnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
 
     def __call__(self, query: ListUsersQuery) -> list[UserProfileResult]:
         actor = ActorContext.from_claims(query.actor_id, query.actor_roles)
         AdminPolicy.ensure_can_manage_users(actor)
-        return [
-            to_user_profile_result(p)
-            for p in self._uow.repositories.user_profiles.list(
-                role=query.role, status=query.status
-            )
-        ]
+        with self._uow_factory() as uow:
+            return [
+                to_user_profile_result(p)
+                for p in uow.repositories.user_profiles.list(
+                    role=query.role, status=query.status
+                )
+            ]
 
 
 class GetMyProfileHandler:
     """Возвращает профиль текущего пользователя."""
 
-    def __init__(self, *, uow: UnitOfWork) -> None:
-        self._uow = uow
+    def __init__(self, *, uow_factory: UnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
 
     def __call__(self, query: GetMyProfileQuery) -> UserProfileResult:
-        profile = self._uow.repositories.user_profiles.get(query.actor_id)
-        if profile is None:
-            raise InvariantViolationError("Пользователь не найден.")
-        return to_user_profile_result(profile)
+        with self._uow_factory() as uow:
+            profile = uow.repositories.user_profiles.get(query.actor_id)
+            if profile is None:
+                raise InvariantViolationError("Пользователь не найден.")
+            return to_user_profile_result(profile)
 
 
 class ListParentStudentsHandler:
     """Возвращает список учеников, связанных с parent."""
 
-    def __init__(self, *, uow: UnitOfWork) -> None:
-        self._uow = uow
+    def __init__(self, *, uow_factory: UnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
 
     def __call__(self, query: ListParentStudentsQuery) -> list[UserProfileResult]:
         actor = ActorContext.from_claims(query.actor_id, query.actor_roles)
         if UserRole.PARENT not in actor.roles and UserRole.ADMIN not in actor.roles:
             raise AccessDeniedError("Операция доступна parent или admin.")
-        links = self._uow.repositories.parent_student_links.list_active_by_parent(
-            query.actor_id
-        )
-        result: list[UserProfileResult] = []
-        for link in links:
-            student = self._uow.repositories.user_profiles.get(link.student_id)
-            if student is not None:
-                result.append(to_user_profile_result(student))
-        sort_value = (query.sort or "created_at:asc").strip().lower()
-        reverse = sort_value.endswith(":desc")
-        result = sorted(result, key=lambda item: item.created_at, reverse=reverse)
-        return result[query.offset : query.offset + query.limit]
+        with self._uow_factory() as uow:
+            links = uow.repositories.parent_student_links.list_active_by_parent(
+                query.actor_id
+            )
+            result: list[UserProfileResult] = []
+            for link in links:
+                student = uow.repositories.user_profiles.get(link.student_id)
+                if student is not None:
+                    result.append(to_user_profile_result(student))
+            sort_value = (query.sort or "created_at:asc").strip().lower()
+            reverse = sort_value.endswith(":desc")
+            result = sorted(result, key=lambda item: item.created_at, reverse=reverse)
+            return result[query.offset : query.offset + query.limit]

@@ -26,7 +26,10 @@ from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
     InMemoryUserProfileRepository,
 )
-from src.infrastructure.db.inmemory.uow import InMemoryRepositoryProvider, InMemoryUnitOfWork
+from src.infrastructure.db.inmemory.uow import (
+    InMemoryRepositoryProvider,
+    InMemoryUnitOfWork,
+)
 
 
 @dataclass
@@ -87,10 +90,10 @@ def test_application_facade_missing_handlers() -> None:
 def test_manage_handlers_missing_and_status_branches() -> None:
     uow, clock = _uow()
 
-    update = UpdateUserProfileHandler(uow=uow, clock=clock)
-    assign = AssignRoleHandler(uow=uow, clock=clock)
-    revoke = RevokeRoleHandler(uow=uow, clock=clock)
-    status = ChangeUserStatusHandler(uow=uow, clock=clock)
+    update = UpdateUserProfileHandler(uow_factory=lambda: uow, clock=clock)
+    assign = AssignRoleHandler(uow_factory=lambda: uow, clock=clock)
+    revoke = RevokeRoleHandler(uow_factory=lambda: uow, clock=clock)
+    status = ChangeUserStatusHandler(uow_factory=lambda: uow, clock=clock)
 
     with pytest.raises(InvariantViolationError):
         update(

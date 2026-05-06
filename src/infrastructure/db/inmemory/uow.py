@@ -25,9 +25,15 @@ class InMemoryUnitOfWork:
     def __init__(self, repositories: InMemoryRepositoryProvider) -> None:
         self.repositories = repositories
 
+    def __enter__(self) -> InMemoryUnitOfWork:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if exc is not None:
+            self.rollback()
+
     def commit(self) -> None:
         """Для in-memory фиксация не требуется."""
 
     def rollback(self) -> None:
         """Для in-memory откат не поддерживается."""
-

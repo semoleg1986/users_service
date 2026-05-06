@@ -10,14 +10,19 @@ from src.application.links.handlers.create_parent_student_link_handler import (
     CreateParentStudentLinkHandler,
 )
 from src.application.users.commands.dto import CreateUserProfileCommand
-from src.application.users.handlers.create_user_profile_handler import CreateUserProfileHandler
+from src.application.users.handlers.create_user_profile_handler import (
+    CreateUserProfileHandler,
+)
 from src.domain.errors import AccessDeniedError, InvariantViolationError
 from src.domain.shared.statuses import UserRole
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
     InMemoryUserProfileRepository,
 )
-from src.infrastructure.db.inmemory.uow import InMemoryRepositoryProvider, InMemoryUnitOfWork
+from src.infrastructure.db.inmemory.uow import (
+    InMemoryRepositoryProvider,
+    InMemoryUnitOfWork,
+)
 
 
 @dataclass
@@ -49,7 +54,7 @@ def _build_uow() -> InMemoryUnitOfWork:
 def test_create_user_profile_handler_creates_profile() -> None:
     uow = _build_uow()
     handler = CreateUserProfileHandler(
-        uow=uow,
+        uow_factory=lambda: uow,
         clock=FakeClock(datetime(2026, 4, 6, tzinfo=UTC)),
         id_generator=FakeIdGenerator(),
     )
@@ -72,7 +77,7 @@ def test_create_user_profile_handler_creates_profile() -> None:
 def test_create_user_profile_handler_rejects_duplicate_email() -> None:
     uow = _build_uow()
     handler = CreateUserProfileHandler(
-        uow=uow,
+        uow_factory=lambda: uow,
         clock=FakeClock(datetime(2026, 4, 6, tzinfo=UTC)),
         id_generator=FakeIdGenerator(),
     )
@@ -94,9 +99,11 @@ def test_create_parent_student_link_handler_creates_active_link() -> None:
     clock = FakeClock(datetime(2026, 4, 6, tzinfo=UTC))
     id_generator = FakeIdGenerator()
 
-    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator)
+    create_user = CreateUserProfileHandler(
+        uow_factory=lambda: uow, clock=clock, id_generator=id_generator
+    )
     create_link = CreateParentStudentLinkHandler(
-        uow=uow,
+        uow_factory=lambda: uow,
         clock=clock,
         id_generator=id_generator,
     )
@@ -142,9 +149,11 @@ def test_create_parent_student_link_handler_checks_policy() -> None:
     clock = FakeClock(datetime(2026, 4, 6, tzinfo=UTC))
     id_generator = FakeIdGenerator()
 
-    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator)
+    create_user = CreateUserProfileHandler(
+        uow_factory=lambda: uow, clock=clock, id_generator=id_generator
+    )
     create_link = CreateParentStudentLinkHandler(
-        uow=uow,
+        uow_factory=lambda: uow,
         clock=clock,
         id_generator=id_generator,
     )
@@ -187,9 +196,11 @@ def test_create_parent_student_link_handler_rejects_invalid_participant_roles() 
     clock = FakeClock(datetime(2026, 4, 6, tzinfo=UTC))
     id_generator = FakeIdGenerator()
 
-    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator)
+    create_user = CreateUserProfileHandler(
+        uow_factory=lambda: uow, clock=clock, id_generator=id_generator
+    )
     create_link = CreateParentStudentLinkHandler(
-        uow=uow,
+        uow_factory=lambda: uow,
         clock=clock,
         id_generator=id_generator,
     )
@@ -232,9 +243,11 @@ def test_create_parent_student_link_handler_rejects_non_active_profiles() -> Non
     clock = FakeClock(datetime(2026, 4, 6, tzinfo=UTC))
     id_generator = FakeIdGenerator()
 
-    create_user = CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator)
+    create_user = CreateUserProfileHandler(
+        uow_factory=lambda: uow, clock=clock, id_generator=id_generator
+    )
     create_link = CreateParentStudentLinkHandler(
-        uow=uow,
+        uow_factory=lambda: uow,
         clock=clock,
         id_generator=id_generator,
     )

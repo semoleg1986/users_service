@@ -84,6 +84,7 @@ def build_runtime() -> RuntimeContainer:
                 parent_student_links=InMemoryParentStudentLinkRepository(),
             )
         )
+        uow_factory = lambda: uow
     else:
         from src.infrastructure.db.sqlalchemy import models as _models  # noqa: F401
         from src.infrastructure.db.sqlalchemy.base import Base
@@ -98,7 +99,8 @@ def build_runtime() -> RuntimeContainer:
         engine = build_engine(settings.database_url)
         if settings.auto_create_schema:
             Base.metadata.create_all(bind=engine)
-        uow = SqlAlchemyUnitOfWork(build_session_factory(engine))
+        session_factory = build_session_factory(engine)
+        uow_factory = lambda: SqlAlchemyUnitOfWork(session_factory)
 
     clock = SystemClock()
     id_generator = UuidGenerator()
@@ -106,42 +108,56 @@ def build_runtime() -> RuntimeContainer:
     facade = ApplicationFacade()
     facade.register_command_handler(
         CreateUserProfileCommand,
-        CreateUserProfileHandler(uow=uow, clock=clock, id_generator=id_generator),
+        CreateUserProfileHandler(
+            uow_factory=uow_factory,
+            clock=clock,
+            id_generator=id_generator,
+        ),
     )
     facade.register_command_handler(
         CreateParentStudentLinkCommand,
-        CreateParentStudentLinkHandler(uow=uow, clock=clock, id_generator=id_generator),
+        CreateParentStudentLinkHandler(
+            uow_factory=uow_factory,
+            clock=clock,
+            id_generator=id_generator,
+        ),
     )
     facade.register_command_handler(
         UpdateUserProfileCommand,
-        UpdateUserProfileHandler(uow=uow, clock=clock),
+        UpdateUserProfileHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         AssignRoleCommand,
-        AssignRoleHandler(uow=uow, clock=clock),
+        AssignRoleHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         RevokeRoleCommand,
-        RevokeRoleHandler(uow=uow, clock=clock),
+        RevokeRoleHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         ChangeUserStatusCommand,
-        ChangeUserStatusHandler(uow=uow, clock=clock),
+        ChangeUserStatusHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         RemoveParentStudentLinkCommand,
-        RemoveParentStudentLinkHandler(uow=uow, clock=clock),
+        RemoveParentStudentLinkHandler(uow_factory=uow_factory, clock=clock),
     )
-    facade.register_query_handler(GetUserByIdQuery, GetUserByIdHandler(uow=uow))
-    facade.register_query_handler(ListUsersQuery, ListUsersHandler(uow=uow))
-    facade.register_query_handler(GetMyProfileQuery, GetMyProfileHandler(uow=uow))
+    facade.register_query_handler(
+        GetUserByIdQuery, GetUserByIdHandler(uow_factory=uow_factory)
+    )
+    facade.register_query_handler(
+        ListUsersQuery, ListUsersHandler(uow_factory=uow_factory)
+    )
+    facade.register_query_handler(
+        GetMyProfileQuery, GetMyProfileHandler(uow_factory=uow_factory)
+    )
     facade.register_query_handler(
         ListParentStudentsQuery,
-        ListParentStudentsHandler(uow=uow),
+        ListParentStudentsHandler(uow_factory=uow_factory),
     )
     facade.register_query_handler(
         ListParentStudentLinksQuery,
-        ListParentStudentLinksHandler(uow=uow),
+        ListParentStudentLinksHandler(uow_factory=uow_factory),
     )
     return RuntimeContainer(
         facade=facade,

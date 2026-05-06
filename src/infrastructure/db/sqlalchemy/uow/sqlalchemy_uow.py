@@ -24,6 +24,14 @@ class SqlAlchemyUnitOfWork:
             parent_student_links=SqlAlchemyParentStudentLinkRepository(self._db),
         )
 
+    def __enter__(self) -> SqlAlchemyUnitOfWork:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if exc is not None:
+            self.rollback()
+        self.close()
+
     def commit(self) -> None:
         self._db.commit()
 
@@ -32,4 +40,3 @@ class SqlAlchemyUnitOfWork:
 
     def close(self) -> None:
         self._db.close()
-
