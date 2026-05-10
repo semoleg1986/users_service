@@ -20,3 +20,10 @@ class ParentStudentRelationResponse(BaseModel):
     parent_id: str
     student_id: str
     has_relation: bool
+
+
+class StudentParentsResponse(BaseModel):
+    """Response списка активных parent ids для student."""
+
+    student_id: str
+    parent_ids: list[str]

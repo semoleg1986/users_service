@@ -195,3 +195,44 @@ def test_internal_parent_student_relation_returns_false_for_missing_link() -> No
         'internal_parent_student_lookup_failures_total{result="not_found"} 1'
         in metrics.text
     )
+
+
+def test_internal_student_parents_returns_active_parent_ids() -> None:
+    client = _client()
+    admin_headers = _auth_headers(sub="admin-1", roles=["admin"])
+
+    for user_id, email, display_name, roles in [
+        ("parent-1", "parent1@example.com", "Parent One", ["parent"]),
+        ("parent-2", "parent2@example.com", "Parent Two", ["parent"]),
+        ("student-1", "student1@example.com", "Student One", ["student"]),
+    ]:
+        response = client.post(
+            "/v1/admin/users",
+            json={
+                "user_id": user_id,
+                "email": email,
+                "display_name": display_name,
+                "phone": None,
+                "roles": roles,
+            },
+            headers=admin_headers,
+        )
+        assert response.status_code == 201, response.text
+
+    for parent_id in ["parent-1", "parent-2"]:
+        response = client.post(
+            "/v1/admin/links",
+            json={"parent_id": parent_id, "student_id": "student-1", "note": "smoke"},
+            headers=admin_headers,
+        )
+        assert response.status_code == 201, response.text
+
+    response = client.get(
+        "/internal/v1/students/student-1/parents",
+        headers={"X-Service-Token": "internal-token"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "student_id": "student-1",
+        "parent_ids": ["parent-1", "parent-2"],
+    }

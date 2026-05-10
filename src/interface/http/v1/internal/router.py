@@ -10,6 +10,7 @@ from src.domain.errors import InvariantViolationError
 from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.internal import (
     ParentStudentRelationResponse,
+    StudentParentsResponse,
     TeacherInfoResponse,
 )
 from src.interface.http.wiring import get_facade, get_service_token
@@ -93,3 +94,31 @@ def check_parent_student_relation(
         student_id=student_id,
         has_relation=bool(links),
     )
+
+
+@router.get(
+    "/students/{student_id}/parents",
+    response_model=StudentParentsResponse,
+)
+def list_student_parents(
+    student_id: str,
+    service_token: str | None = Header(default=None, alias="X-Service-Token"),
+    expected_token: str = Depends(get_service_token),
+    facade=Depends(get_facade),
+) -> StudentParentsResponse:
+    """Возвращает активные parent ids для межсервисной интеграции."""
+
+    if not service_token:
+        raise HTTPException(status_code=401, detail="Требуется X-Service-Token.")
+    if service_token != expected_token:
+        raise HTTPException(status_code=401, detail="Некорректный X-Service-Token.")
+
+    links = facade.query(
+        ListParentStudentLinksQuery(
+            actor_id="internal-users-service",
+            actor_roles=["admin"],
+            student_id=student_id,
+        )
+    )
+    parent_ids = sorted({item.parent_id for item in links if item.status == "active"})
+    return StudentParentsResponse(student_id=student_id, parent_ids=parent_ids)
