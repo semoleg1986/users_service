@@ -19,9 +19,13 @@ from src.application.ports.access_token_verifier import AccessTokenVerifier
 from src.application.users.commands.dto import (
     AssignRoleCommand,
     ChangeUserStatusCommand,
+    CreateMyStudentCommand,
     CreateUserProfileCommand,
     RevokeRoleCommand,
     UpdateUserProfileCommand,
+)
+from src.application.users.handlers.create_my_student_handler import (
+    CreateMyStudentHandler,
 )
 from src.application.users.handlers.create_user_profile_handler import (
     CreateUserProfileHandler,
@@ -109,6 +113,14 @@ def build_runtime() -> RuntimeContainer:
     facade.register_command_handler(
         CreateUserProfileCommand,
         CreateUserProfileHandler(
+            uow_factory=uow_factory,
+            clock=clock,
+            id_generator=id_generator,
+        ),
+    )
+    facade.register_command_handler(
+        CreateMyStudentCommand,
+        CreateMyStudentHandler(
             uow_factory=uow_factory,
             clock=clock,
             id_generator=id_generator,

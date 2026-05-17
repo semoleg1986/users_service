@@ -145,3 +145,40 @@ def test_postgres_admin_user_and_links_flow() -> None:
     )
     assert removed.status_code == 200, removed.text
     assert removed.json()["status"] == "removed"
+
+
+def test_postgres_parent_can_create_student_profile_and_link() -> None:
+    client = _client()
+
+    parent = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "parent-it-2",
+            "email": "parent-it-2@example.com",
+            "display_name": "Parent IT 2",
+            "phone": None,
+            "roles": ["parent"],
+        },
+        headers=_auth_headers(sub="admin-it-1", roles=["admin"]),
+    )
+    assert parent.status_code == 201, parent.text
+
+    created = client.post(
+        "/v1/parent/me/students",
+        json={
+            "email": "student-it-2@example.com",
+            "display_name": "Student IT 2",
+            "phone": None,
+        },
+        headers=_auth_headers(sub="parent-it-2", roles=["parent"]),
+    )
+    assert created.status_code == 201, created.text
+    student_id = created.json()["user_id"]
+
+    parent_students = client.get(
+        "/v1/parent/me/students",
+        headers=_auth_headers(sub="parent-it-2", roles=["parent"]),
+    )
+    assert parent_students.status_code == 200, parent_students.text
+    assert len(parent_students.json()["items"]) == 1
+    assert parent_students.json()["items"][0]["user_id"] == student_id

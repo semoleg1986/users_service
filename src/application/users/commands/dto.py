@@ -57,3 +57,14 @@ class ChangeUserStatusCommand:
     action: str  # block | unblock | archive | restore
     actor_id: str
     actor_roles: list[str]
+
+
+@dataclass(frozen=True, slots=True)
+class CreateMyStudentCommand:
+    """Создает student profile и связывает его с текущим parent."""
+
+    email: str
+    display_name: str
+    phone: str | None
+    actor_id: str
+    actor_roles: list[str]

@@ -146,6 +146,43 @@ def test_admin_create_user_and_link() -> None:
     assert 'parent_student_links_created_total{result="success"} 1' in metrics.text
 
 
+def test_parent_can_create_student_via_parent_me_students() -> None:
+    client = _client()
+    create_parent = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "parent-1",
+            "email": "parent1@example.com",
+            "display_name": "Parent 1",
+            "phone": None,
+            "roles": ["parent"],
+        },
+        headers=_auth_headers(sub="admin-1", roles=["admin"]),
+    )
+    assert create_parent.status_code == 201, create_parent.text
+
+    created = client.post(
+        "/v1/parent/me/students",
+        json={
+            "email": "student-created@example.com",
+            "display_name": "Student Created",
+            "phone": None,
+        },
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["display_name"] == "Student Created"
+    assert created.json()["roles"] == ["student"]
+
+    listed = client.get(
+        "/v1/parent/me/students",
+        headers=_auth_headers(sub="parent-1", roles=["parent"]),
+    )
+    assert listed.status_code == 200, listed.text
+    assert len(listed.json()["items"]) == 1
+    assert listed.json()["items"][0]["email"] == "student-created@example.com"
+
+
 def test_admin_create_user_duplicate_email_returns_409() -> None:
     client = _client()
     payload = {

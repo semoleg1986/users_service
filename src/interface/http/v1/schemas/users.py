@@ -25,6 +25,14 @@ class UpdateUserRequest(BaseModel):
     phone: str | None = None
 
 
+class CreateMyStudentRequest(BaseModel):
+    """Request создания student profile текущим parent."""
+
+    email: str
+    display_name: str = Field(min_length=1, max_length=120)
+    phone: str | None = None
+
+
 class AssignRoleRequest(BaseModel):
     """Request назначения роли."""
 

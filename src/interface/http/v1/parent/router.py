@@ -4,15 +4,47 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 
+from src.application.users.commands.dto import CreateMyStudentCommand
 from src.application.users.queries.dto import ListParentStudentsQuery
 from src.interface.http.common.actor import HttpActor, get_http_actor
 from src.interface.http.observability import increment_counter
-from src.interface.http.v1.schemas.users import PaginatedUserListResponse, UserResponse
+from src.interface.http.v1.schemas.users import (
+    CreateMyStudentRequest,
+    PaginatedUserListResponse,
+    UserResponse,
+)
 from src.interface.http.wiring import get_facade
 
 router = APIRouter(prefix="/v1/parent", tags=["parent"])
+
+
+@router.post(
+    "/me/students", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
+def create_my_student(
+    payload: CreateMyStudentRequest,
+    actor: HttpActor = Depends(get_http_actor),
+    facade=Depends(get_facade),
+) -> UserResponse:
+    """Создает student profile и сразу связывает его с текущим parent."""
+
+    result = facade.execute(
+        CreateMyStudentCommand(
+            email=payload.email,
+            display_name=payload.display_name,
+            phone=payload.phone,
+            actor_id=actor.actor_id,
+            actor_roles=list(actor.roles),
+        )
+    )
+    increment_counter(
+        "parent_students_created_total",
+        "Total student profiles created by parent.",
+        result="success",
+    )
+    return UserResponse(**asdict(result))
 
 
 @router.get("/me/students", response_model=PaginatedUserListResponse)
