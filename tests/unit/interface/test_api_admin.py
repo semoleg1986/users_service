@@ -183,6 +183,35 @@ def test_parent_can_create_student_via_parent_me_students() -> None:
     assert listed.json()["items"][0]["email"] == "student-created@example.com"
 
 
+def test_user_can_bootstrap_own_profile_via_user_me_post() -> None:
+    client = _client()
+
+    created = client.post(
+        "/v1/user/me",
+        json={
+            "email": "parent-bootstrap@example.com",
+            "display_name": "Parent Bootstrap",
+            "phone": None,
+        },
+        headers=_auth_headers(sub="parent-bootstrap-1", roles=["parent"]),
+    )
+    assert created.status_code == 200, created.text
+    assert created.json()["user_id"] == "parent-bootstrap-1"
+    assert created.json()["roles"] == ["parent"]
+
+    repeated = client.post(
+        "/v1/user/me",
+        json={
+            "email": "parent-bootstrap@example.com",
+            "display_name": "Parent Bootstrap Changed",
+            "phone": None,
+        },
+        headers=_auth_headers(sub="parent-bootstrap-1", roles=["parent"]),
+    )
+    assert repeated.status_code == 200, repeated.text
+    assert repeated.json()["display_name"] == "Parent Bootstrap"
+
+
 def test_admin_create_user_duplicate_email_returns_409() -> None:
     client = _client()
     payload = {

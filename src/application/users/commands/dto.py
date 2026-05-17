@@ -68,3 +68,14 @@ class CreateMyStudentCommand:
     phone: str | None
     actor_id: str
     actor_roles: list[str]
+
+
+@dataclass(frozen=True, slots=True)
+class EnsureMyProfileCommand:
+    """Идемпотентно создает профиль текущего пользователя, если его еще нет."""
+
+    actor_id: str
+    actor_roles: list[str]
+    email: str
+    display_name: str | None = None
+    phone: str | None = None

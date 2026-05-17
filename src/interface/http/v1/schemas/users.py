@@ -33,6 +33,14 @@ class CreateMyStudentRequest(BaseModel):
     phone: str | None = None
 
 
+class EnsureMyProfileRequest(BaseModel):
+    """Request bootstrap профиля текущего пользователя."""
+
+    email: str
+    display_name: str | None = Field(default=None, min_length=1, max_length=120)
+    phone: str | None = None
+
+
 class AssignRoleRequest(BaseModel):
     """Request назначения роли."""
 

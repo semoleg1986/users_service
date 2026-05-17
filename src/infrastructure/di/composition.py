@@ -21,6 +21,7 @@ from src.application.users.commands.dto import (
     ChangeUserStatusCommand,
     CreateMyStudentCommand,
     CreateUserProfileCommand,
+    EnsureMyProfileCommand,
     RevokeRoleCommand,
     UpdateUserProfileCommand,
 )
@@ -29,6 +30,9 @@ from src.application.users.handlers.create_my_student_handler import (
 )
 from src.application.users.handlers.create_user_profile_handler import (
     CreateUserProfileHandler,
+)
+from src.application.users.handlers.ensure_my_profile_handler import (
+    EnsureMyProfileHandler,
 )
 from src.application.users.handlers.get_user_handlers import (
     GetMyProfileHandler,
@@ -125,6 +129,10 @@ def build_runtime() -> RuntimeContainer:
             clock=clock,
             id_generator=id_generator,
         ),
+    )
+    facade.register_command_handler(
+        EnsureMyProfileCommand,
+        EnsureMyProfileHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         CreateParentStudentLinkCommand,
