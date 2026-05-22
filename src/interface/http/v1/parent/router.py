@@ -6,13 +6,16 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, Query, status
 
+from src.application.student_invites.commands.dto import CreateStudentInviteCommand
 from src.application.users.commands.dto import CreateMyStudentCommand
 from src.application.users.queries.dto import ListParentStudentsQuery
 from src.interface.http.common.actor import HttpActor, get_http_actor
 from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.users import (
     CreateMyStudentRequest,
+    CreateStudentInviteRequest,
     PaginatedUserListResponse,
+    StudentInviteResponse,
     UserResponse,
 )
 from src.interface.http.wiring import get_facade
@@ -78,3 +81,33 @@ def list_my_students(
         offset=offset,
         sort=sort,
     )
+
+
+@router.post(
+    "/me/students/{student_id}/invite",
+    response_model=StudentInviteResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_student_invite(
+    student_id: str,
+    payload: CreateStudentInviteRequest,
+    actor: HttpActor = Depends(get_http_actor),
+    facade=Depends(get_facade),
+) -> StudentInviteResponse:
+    """Создает одноразовый invite для child onboarding (auth identity)."""
+
+    result = facade.execute(
+        CreateStudentInviteCommand(
+            student_id=student_id,
+            actor_id=actor.actor_id,
+            actor_roles=list(actor.roles),
+            ttl_seconds=payload.ttl_seconds,
+            idempotency_key=payload.idempotency_key,
+        )
+    )
+    increment_counter(
+        "student_invites_created_total",
+        "Total student invites created by parent.",
+        result="success",
+    )
+    return StudentInviteResponse(**asdict(result))

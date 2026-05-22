@@ -1,0 +1,1 @@
+"""Query DTO student invites."""

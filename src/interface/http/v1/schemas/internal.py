@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -27,3 +29,20 @@ class StudentParentsResponse(BaseModel):
 
     student_id: str
     parent_ids: list[str]
+
+
+class ConsumeStudentInviteRequest(BaseModel):
+    """Request consume student invite token для internal вызова auth_service."""
+
+    token: str
+    consumer: str = "auth_service"
+
+
+class ConsumedStudentInviteResponse(BaseModel):
+    """Response consumed student invite."""
+
+    invite_id: str
+    parent_user_id: str
+    student_user_id: str
+    email: str
+    consumed_at: datetime

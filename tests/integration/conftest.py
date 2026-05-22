@@ -41,9 +41,14 @@ def clean_tables() -> None:
     engine = create_engine(database_url, future=True, pool_pre_ping=True)
     with engine.begin() as conn:
         try:
-            conn.execute(text("TRUNCATE TABLE parent_student_links RESTART IDENTITY CASCADE"))
+            conn.execute(
+                text("TRUNCATE TABLE student_invites RESTART IDENTITY CASCADE")
+            )
+            conn.execute(
+                text("TRUNCATE TABLE parent_student_links RESTART IDENTITY CASCADE")
+            )
             conn.execute(text("TRUNCATE TABLE user_profiles RESTART IDENTITY CASCADE"))
         except SQLAlchemyError:
+            conn.execute(text("DELETE FROM student_invites"))
             conn.execute(text("DELETE FROM parent_student_links"))
             conn.execute(text("DELETE FROM user_profiles"))
-

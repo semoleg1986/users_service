@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-from src.application.common.dto import ParentStudentLinkResult, UserProfileResult
+from src.application.common.dto import (
+    ParentStudentLinkResult,
+    StudentInviteResult,
+    UserProfileResult,
+)
 from src.domain.links.parent_student_link.entity import ParentStudentLink
+from src.domain.links.student_invite.entity import StudentInvite
 from src.domain.users.profile.entity import UserProfile
 
 
@@ -37,3 +42,23 @@ def to_link_result(link: ParentStudentLink) -> ParentStudentLinkResult:
         version=link.meta.version,
     )
 
+
+def to_student_invite_result(
+    invite: StudentInvite, *, invite_token: str | None = None
+) -> StudentInviteResult:
+    """Преобразует StudentInvite в StudentInviteResult."""
+
+    return StudentInviteResult(
+        invite_id=invite.invite_id,
+        parent_user_id=invite.parent_user_id,
+        student_user_id=invite.student_user_id,
+        email=invite.email,
+        status=invite.status.value,
+        expires_at=invite.expires_at,
+        used_at=invite.used_at,
+        revoked_at=invite.revoked_at,
+        created_at=invite.meta.created_at,
+        updated_at=invite.meta.updated_at,
+        version=invite.meta.version,
+        invite_token=invite_token,
+    )

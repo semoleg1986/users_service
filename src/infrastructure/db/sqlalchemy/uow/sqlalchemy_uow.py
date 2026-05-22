@@ -8,6 +8,9 @@ from src.application.ports.repositories import RepositoryProvider
 from src.infrastructure.db.sqlalchemy.repositories.parent_student_link_repository_sqlalchemy import (
     SqlAlchemyParentStudentLinkRepository,
 )
+from src.infrastructure.db.sqlalchemy.repositories.student_invite_repository_sqlalchemy import (
+    SqlAlchemyStudentInviteRepository,
+)
 from src.infrastructure.db.sqlalchemy.repositories.user_profile_repository_sqlalchemy import (
     SqlAlchemyUserProfileRepository,
 )
@@ -22,6 +25,7 @@ class SqlAlchemyUnitOfWork:
         self.repositories = RepositoryProvider(
             user_profiles=SqlAlchemyUserProfileRepository(self._db),
             parent_student_links=SqlAlchemyParentStudentLinkRepository(self._db),
+            student_invites=SqlAlchemyStudentInviteRepository(self._db),
         )
 
     def __enter__(self) -> SqlAlchemyUnitOfWork:

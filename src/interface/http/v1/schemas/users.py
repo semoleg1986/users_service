@@ -33,6 +33,13 @@ class CreateMyStudentRequest(BaseModel):
     phone: str | None = None
 
 
+class CreateStudentInviteRequest(BaseModel):
+    """Request создания invite для student profile."""
+
+    ttl_seconds: int = Field(default=86400, ge=60, le=604800)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=128)
+
+
 class EnsureMyProfileRequest(BaseModel):
     """Request bootstrap профиля текущего пользователя."""
 
@@ -59,6 +66,23 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     version: int
+
+
+class StudentInviteResponse(BaseModel):
+    """Response student invite."""
+
+    invite_id: str
+    parent_user_id: str
+    student_user_id: str
+    email: str
+    status: str
+    expires_at: datetime
+    used_at: datetime | None = None
+    revoked_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+    invite_token: str | None = None
 
 
 class UserListResponse(BaseModel):

@@ -16,6 +16,18 @@ from src.application.links.handlers.create_parent_student_link_handler import (
 )
 from src.application.links.queries.dto import ListParentStudentLinksQuery
 from src.application.ports.access_token_verifier import AccessTokenVerifier
+from src.application.student_invites.commands.dto import (
+    ConsumeStudentInviteCommand,
+    CreateStudentInviteCommand,
+)
+from src.application.student_invites.handlers.get_student_invite_handler import (
+    GetStudentInviteByIdHandler,
+)
+from src.application.student_invites.handlers.manage_student_invites_handler import (
+    ConsumeStudentInviteHandler,
+    CreateStudentInviteHandler,
+)
+from src.application.student_invites.queries.dto import GetStudentInviteByIdQuery
 from src.application.users.commands.dto import (
     AssignRoleCommand,
     ChangeUserStatusCommand,
@@ -57,6 +69,7 @@ from src.infrastructure.clock.system_clock import SystemClock
 from src.infrastructure.config.settings import Settings
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
 from src.infrastructure.db.inmemory.uow import (
@@ -90,6 +103,7 @@ def build_runtime() -> RuntimeContainer:
             InMemoryRepositoryProvider(
                 user_profiles=InMemoryUserProfileRepository(),
                 parent_student_links=InMemoryParentStudentLinkRepository(),
+                student_invites=InMemoryStudentInviteRepository(),
             )
         )
         uow_factory = lambda: uow
@@ -129,6 +143,18 @@ def build_runtime() -> RuntimeContainer:
             clock=clock,
             id_generator=id_generator,
         ),
+    )
+    facade.register_command_handler(
+        CreateStudentInviteCommand,
+        CreateStudentInviteHandler(
+            uow_factory=uow_factory,
+            clock=clock,
+            id_generator=id_generator,
+        ),
+    )
+    facade.register_command_handler(
+        ConsumeStudentInviteCommand,
+        ConsumeStudentInviteHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         EnsureMyProfileCommand,
@@ -178,6 +204,10 @@ def build_runtime() -> RuntimeContainer:
     facade.register_query_handler(
         ListParentStudentLinksQuery,
         ListParentStudentLinksHandler(uow_factory=uow_factory),
+    )
+    facade.register_query_handler(
+        GetStudentInviteByIdQuery,
+        GetStudentInviteByIdHandler(uow_factory=uow_factory),
     )
     return RuntimeContainer(
         facade=facade,

@@ -75,6 +75,7 @@ def _client() -> TestClient:
     os.environ["USERS_AUTH_JWKS_JSON"] = _jwks_json()
     os.environ["USERS_AUTH_ISSUER"] = "auth_service"
     os.environ["USERS_AUTH_AUDIENCE"] = _AUDIENCE
+    os.environ["USERS_SERVICE_TOKEN"] = "internal-token"
     get_runtime.cache_clear()
     return TestClient(create_app())
 
@@ -182,3 +183,62 @@ def test_postgres_parent_can_create_student_profile_and_link() -> None:
     assert parent_students.status_code == 200, parent_students.text
     assert len(parent_students.json()["items"]) == 1
     assert parent_students.json()["items"][0]["user_id"] == student_id
+
+
+def test_postgres_parent_invite_and_internal_consume_flow() -> None:
+    client = _client()
+    admin_headers = _auth_headers(sub="admin-it-1", roles=["admin"])
+
+    parent = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "parent-it-3",
+            "email": "parent-it-3@example.com",
+            "display_name": "Parent IT 3",
+            "phone": None,
+            "roles": ["parent"],
+        },
+        headers=admin_headers,
+    )
+    assert parent.status_code == 201, parent.text
+
+    student = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "student-it-3",
+            "email": "student-it-3@example.com",
+            "display_name": "Student IT 3",
+            "phone": None,
+            "roles": ["student"],
+        },
+        headers=admin_headers,
+    )
+    assert student.status_code == 201, student.text
+
+    link = client.post(
+        "/v1/admin/links",
+        json={
+            "parent_id": "parent-it-3",
+            "student_id": "student-it-3",
+            "note": "integration",
+        },
+        headers=admin_headers,
+    )
+    assert link.status_code == 201, link.text
+
+    invite = client.post(
+        "/v1/parent/me/students/student-it-3/invite",
+        json={"ttl_seconds": 3600, "idempotency_key": "invite-it-3"},
+        headers=_auth_headers(sub="parent-it-3", roles=["parent"]),
+    )
+    assert invite.status_code == 201, invite.text
+    token = invite.json().get("invite_token")
+    assert token
+
+    consumed = client.post(
+        "/internal/v1/student-invites/consume",
+        json={"token": token, "consumer": "auth_service"},
+        headers={"X-Service-Token": "internal-token"},
+    )
+    assert consumed.status_code == 200, consumed.text
+    assert consumed.json()["student_user_id"] == "student-it-3"

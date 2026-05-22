@@ -21,6 +21,7 @@ from src.application.users.queries.dto import GetUserByIdQuery
 from src.domain.errors import AccessDeniedError, InvariantViolationError
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
 from src.infrastructure.db.inmemory.uow import (
@@ -48,6 +49,7 @@ def _ctx() -> tuple[InMemoryUnitOfWork, _Clock, _Ids]:
         InMemoryRepositoryProvider(
             user_profiles=InMemoryUserProfileRepository(),
             parent_student_links=InMemoryParentStudentLinkRepository(),
+            student_invites=InMemoryStudentInviteRepository(),
         )
     )
     return uow, _Clock(), _Ids()

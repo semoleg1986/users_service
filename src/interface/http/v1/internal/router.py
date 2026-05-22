@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from src.application.links.queries.dto import ListParentStudentLinksQuery
+from src.application.student_invites.commands.dto import ConsumeStudentInviteCommand
 from src.application.users.queries.dto import GetUserByIdQuery
 from src.domain.errors import InvariantViolationError
 from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.internal import (
+    ConsumedStudentInviteResponse,
+    ConsumeStudentInviteRequest,
     ParentStudentRelationResponse,
     StudentParentsResponse,
     TeacherInfoResponse,
@@ -122,3 +127,35 @@ def list_student_parents(
     )
     parent_ids = sorted({item.parent_id for item in links if item.status == "active"})
     return StudentParentsResponse(student_id=student_id, parent_ids=parent_ids)
+
+
+@router.post(
+    "/student-invites/consume",
+    response_model=ConsumedStudentInviteResponse,
+)
+def consume_student_invite(
+    payload: ConsumeStudentInviteRequest,
+    service_token: str | None = Header(default=None, alias="X-Service-Token"),
+    expected_token: str = Depends(get_service_token),
+    facade=Depends(get_facade),
+) -> ConsumedStudentInviteResponse:
+    """Одноразово consume invite token для auth onboarding flow."""
+
+    if not service_token:
+        raise HTTPException(status_code=401, detail="Требуется X-Service-Token.")
+    if service_token != expected_token:
+        raise HTTPException(status_code=401, detail="Некорректный X-Service-Token.")
+
+    result = facade.execute(
+        ConsumeStudentInviteCommand(
+            token=payload.token,
+            consumer=payload.consumer,
+        )
+    )
+    increment_counter(
+        "student_invites_consumed_total",
+        "Total consumed student invites by internal consumers.",
+        result="success",
+        consumer=payload.consumer,
+    )
+    return ConsumedStudentInviteResponse(**asdict(result))

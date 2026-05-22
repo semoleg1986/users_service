@@ -27,3 +27,11 @@ class UserRole(StrEnum):
     PARENT = "parent"
     STUDENT = "student"
 
+
+class InviteStatus(StrEnum):
+    """Жизненный цикл student invite."""
+
+    PENDING = "pending"
+    USED = "used"
+    REVOKED = "revoked"
+    EXPIRED = "expired"
