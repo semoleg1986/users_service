@@ -6,11 +6,14 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.domain.errors import AccessDeniedError, InvariantViolationError
 from src.interface.http.problem_types import (
     PROBLEM_ACCESS_DENIED,
     PROBLEM_CONFLICT,
+    PROBLEM_NOT_FOUND,
+    PROBLEM_UNAUTHORIZED,
     PROBLEM_VALIDATION,
 )
 
@@ -23,6 +26,17 @@ def _correlation_id(request: Request) -> str | None:
     return getattr(request.state, "correlation_id", None)
 
 
+def _headers(request: Request, extra: dict[str, str] | None = None) -> dict[str, str]:
+    headers = dict(extra or {})
+    request_id = _request_id(request)
+    correlation_id = _correlation_id(request)
+    if request_id is not None:
+        headers["X-Request-ID"] = request_id
+    if correlation_id is not None:
+        headers["X-Correlation-ID"] = correlation_id
+    return headers
+
+
 def _problem(
     *,
     request: Request,
@@ -30,6 +44,7 @@ def _problem(
     title: str,
     detail: str,
     problem_type: str,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status,
@@ -43,18 +58,7 @@ def _problem(
             "correlation_id": _correlation_id(request),
         },
         media_type="application/problem+json",
-        headers={
-            **(
-                {"X-Request-ID": _request_id(request)}
-                if _request_id(request) is not None
-                else {}
-            ),
-            **(
-                {"X-Correlation-ID": _correlation_id(request)}
-                if _correlation_id(request) is not None
-                else {}
-            ),
-        },
+        headers=_headers(request, headers),
     )
 
 
@@ -103,4 +107,25 @@ def register_exception_handlers(app: FastAPI) -> None:
             title="Ошибка валидации",
             detail=str(exc),
             problem_type=PROBLEM_VALIDATION,
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+        mapping = {
+            401: ("Не авторизован", PROBLEM_UNAUTHORIZED),
+            403: ("Доступ запрещен", PROBLEM_ACCESS_DENIED),
+            404: ("Не найдено", PROBLEM_NOT_FOUND),
+            409: ("Конфликт", PROBLEM_CONFLICT),
+            422: ("Ошибка валидации", PROBLEM_VALIDATION),
+        }
+        title, problem_type = mapping.get(
+            exc.status_code, (str(exc.detail), "about:blank")
+        )
+        return _problem(
+            request=request,
+            status=exc.status_code,
+            title=title,
+            detail=str(exc.detail),
+            problem_type=problem_type,
+            headers=exc.headers,
         )

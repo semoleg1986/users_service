@@ -8,8 +8,11 @@
 - `title`
 - `status`
 - `detail`
-- `instance` (опционально)
-- `request_id` (рекомендуется)
+- `instance`
+- `request_id`
+- `correlation_id`
+
+`X-Request-ID` и `X-Correlation-ID` также возвращаются в headers, когда доступны.
 
 ## Стандартные Типы Проблем
 
@@ -22,6 +25,9 @@
 ## Маппинг Исключений
 
 - `ValidationError` -> `422`
+- `HTTPException(401)` -> `401`
+- `HTTPException(403)` -> `403`
+- `HTTPException(404)` -> `404`
 - `NotFoundError` -> `404`
 - `AccessDeniedError` -> `403`
 - `InvariantViolationError` -> `409`
