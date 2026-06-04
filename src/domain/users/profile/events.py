@@ -31,4 +31,3 @@ class UserStatusChanged:
     user_id: str
     status: str
     occurred_at: datetime
-

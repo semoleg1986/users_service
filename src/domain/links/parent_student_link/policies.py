@@ -28,5 +28,6 @@ class ParentStudentLinkPolicy:
         if UserRole.ADMIN in actor.roles:
             return
         if actor.actor_id != parent_id:
-            raise AccessDeniedError("Удалять связь может только владелец-parent или admin.")
-
+            raise AccessDeniedError(
+                "Удалять связь может только владелец-parent или admin."
+            )

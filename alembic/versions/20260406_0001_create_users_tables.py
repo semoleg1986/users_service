@@ -7,9 +7,9 @@ Create Date: 2026-04-06
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = "20260406_0001"
 down_revision: Union[str, Sequence[str], None] = None
@@ -35,7 +35,9 @@ def upgrade() -> None:
         sa.Column("archived_by", sa.String(length=64), nullable=True),
     )
     op.create_index("ix_user_profiles_email", "user_profiles", ["email"], unique=True)
-    op.create_index("ix_user_profiles_status", "user_profiles", ["status"], unique=False)
+    op.create_index(
+        "ix_user_profiles_status", "user_profiles", ["status"], unique=False
+    )
 
     op.create_table(
         "parent_student_links",
@@ -74,11 +76,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("ix_parent_student_links_status", table_name="parent_student_links")
-    op.drop_index("ix_parent_student_links_student_id", table_name="parent_student_links")
-    op.drop_index("ix_parent_student_links_parent_id", table_name="parent_student_links")
+    op.drop_index(
+        "ix_parent_student_links_student_id", table_name="parent_student_links"
+    )
+    op.drop_index(
+        "ix_parent_student_links_parent_id", table_name="parent_student_links"
+    )
     op.drop_table("parent_student_links")
 
     op.drop_index("ix_user_profiles_status", table_name="user_profiles")
     op.drop_index("ix_user_profiles_email", table_name="user_profiles")
     op.drop_table("user_profiles")
-

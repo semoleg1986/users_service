@@ -8,6 +8,7 @@ from datetime import datetime
 from src.domain.errors import InvariantViolationError
 from src.domain.shared.entity import EntityMeta
 from src.domain.shared.statuses import UserRole, UserStatus
+
 from .value_objects import DisplayName, Email, Phone
 
 
@@ -71,7 +72,9 @@ class UserProfile:
         """Создает новый профиль пользователя."""
 
         if not initial_roles:
-            raise InvariantViolationError("У пользователя должна быть хотя бы одна роль.")
+            raise InvariantViolationError(
+                "У пользователя должна быть хотя бы одна роль."
+            )
         profile = cls(
             user_id=user_id,
             email=email,
@@ -92,9 +95,15 @@ class UserProfile:
     def roles(self) -> set[UserRole]:
         """Возвращает множество активных ролей."""
 
-        return {role for role, assignment in self.role_assignments.items() if assignment.is_active}
+        return {
+            role
+            for role, assignment in self.role_assignments.items()
+            if assignment.is_active
+        }
 
-    def change_display_name(self, *, display_name: DisplayName, now: datetime, actor_id: str) -> None:
+    def change_display_name(
+        self, *, display_name: DisplayName, now: datetime, actor_id: str
+    ) -> None:
         """Обновляет отображаемое имя."""
 
         self._ensure_not_archived()
@@ -108,7 +117,9 @@ class UserProfile:
         self.email = email
         self.meta.touch(at=now, actor_id=actor_id)
 
-    def change_phone(self, *, phone: Phone | None, now: datetime, actor_id: str) -> None:
+    def change_phone(
+        self, *, phone: Phone | None, now: datetime, actor_id: str
+    ) -> None:
         """Обновляет телефон профиля."""
 
         self._ensure_not_archived()
@@ -137,7 +148,9 @@ class UserProfile:
         if assignment is None or not assignment.is_active:
             return
         if len(self.roles) <= 1:
-            raise InvariantViolationError("Нельзя отозвать последнюю активную роль пользователя.")
+            raise InvariantViolationError(
+                "Нельзя отозвать последнюю активную роль пользователя."
+            )
         assignment.revoke(at=now, actor_id=actor_id)
         self.meta.touch(at=now, actor_id=actor_id)
 
@@ -167,10 +180,14 @@ class UserProfile:
         """Восстанавливает архивированного пользователя в active."""
 
         if self.status != UserStatus.ARCHIVED:
-            raise InvariantViolationError("Восстановление возможно только для архивного пользователя.")
+            raise InvariantViolationError(
+                "Восстановление возможно только для архивного пользователя."
+            )
         self.status = UserStatus.ACTIVE
         self.meta.touch(at=now, actor_id=actor_id)
 
     def _ensure_not_archived(self) -> None:
         if self.status == UserStatus.ARCHIVED:
-            raise InvariantViolationError("Операция недоступна для архивного пользователя.")
+            raise InvariantViolationError(
+                "Операция недоступна для архивного пользователя."
+            )

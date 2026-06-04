@@ -8,7 +8,11 @@ from src.domain.errors import AccessDeniedError, InvariantViolationError
 from src.domain.links.parent_student_link.policies import ParentStudentLinkPolicy
 from src.domain.shared.statuses import UserRole
 from src.domain.users.profile.entity import UserProfile
-from src.domain.users.profile.policies import ActorContext, AdminPolicy, SelfServicePolicy
+from src.domain.users.profile.policies import (
+    ActorContext,
+    AdminPolicy,
+    SelfServicePolicy,
+)
 from src.domain.users.profile.value_objects import DisplayName, Email, Phone
 
 
@@ -44,7 +48,9 @@ def test_policies_and_value_objects_extra_branches() -> None:
     AdminPolicy.ensure_can_manage_users(admin)
 
     with pytest.raises(AccessDeniedError):
-        AdminPolicy.ensure_can_manage_users(ActorContext(actor_id="u-1", roles={UserRole.STUDENT}))
+        AdminPolicy.ensure_can_manage_users(
+            ActorContext(actor_id="u-1", roles={UserRole.STUDENT})
+        )
 
     SelfServicePolicy.ensure_can_edit_profile(admin, target_user_id="u-2")
 
@@ -55,7 +61,7 @@ def test_policies_and_value_objects_extra_branches() -> None:
         )
 
     with pytest.raises(InvariantViolationError):
-        DisplayName(" " )
+        DisplayName(" ")
     with pytest.raises(InvariantViolationError):
         Email("bad")
     with pytest.raises(InvariantViolationError):

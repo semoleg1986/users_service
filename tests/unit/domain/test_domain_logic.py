@@ -88,4 +88,3 @@ def test_parent_link_policy_requires_parent_or_admin() -> None:
     actor = ActorContext(actor_id="teacher-1", roles={UserRole.TEACHER})
     with pytest.raises(AccessDeniedError):
         ParentStudentLinkPolicy.ensure_can_create_link(actor, parent_id="parent-1")
-

@@ -1,2 +1,1 @@
 """DI composition root."""
-

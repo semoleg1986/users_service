@@ -11,4 +11,3 @@ class InvariantViolationError(DomainError):
 
 class AccessDeniedError(DomainError):
     """Ошибка доступа по доменным политикам."""
-

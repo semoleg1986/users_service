@@ -8,6 +8,7 @@ from datetime import datetime
 from src.domain.errors import InvariantViolationError
 from src.domain.shared.entity import EntityMeta
 from src.domain.shared.statuses import LinkStatus
+
 from .value_objects import LinkNote
 
 
@@ -70,4 +71,3 @@ class ParentStudentLink:
             return
         self.status = LinkStatus.REMOVED
         self.meta.touch(at=now, actor_id=actor_id)
-

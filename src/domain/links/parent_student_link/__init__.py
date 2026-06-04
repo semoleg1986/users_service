@@ -1,2 +1,1 @@
 """Агрегат ParentStudentLink."""
-

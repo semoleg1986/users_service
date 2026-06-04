@@ -44,4 +44,3 @@ class SelfServicePolicy:
             return
         if actor.actor_id != target_user_id:
             raise AccessDeniedError("Можно редактировать только собственный профиль.")
-

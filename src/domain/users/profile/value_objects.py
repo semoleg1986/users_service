@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from src.domain.errors import InvariantViolationError
 
@@ -63,4 +63,3 @@ class Phone:
         if not _PHONE_PATTERN.fullmatch(normalized):
             raise InvariantViolationError("Некорректный формат телефона.")
         object.__setattr__(self, "value", normalized)
-

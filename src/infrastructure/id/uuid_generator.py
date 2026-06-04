@@ -12,4 +12,3 @@ class UuidGenerator:
         """Возвращает новый UUID."""
 
         return str(uuid4())
-

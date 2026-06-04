@@ -30,4 +30,3 @@ class ParentStudentLinkRemoved:
 
     link_id: str
     occurred_at: datetime
-

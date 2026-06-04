@@ -24,7 +24,9 @@ class SqlAlchemyParentStudentLinkRepository:
             return None
         return self._to_entity(model)
 
-    def get_active_by_pair(self, parent_id: str, student_id: str) -> ParentStudentLink | None:
+    def get_active_by_pair(
+        self, parent_id: str, student_id: str
+    ) -> ParentStudentLink | None:
         row = self._db.execute(
             select(ParentStudentLinkModel).where(
                 ParentStudentLinkModel.parent_id == parent_id,
@@ -92,4 +94,3 @@ class SqlAlchemyParentStudentLinkRepository:
             ),
             note=LinkNote(model.note) if model.note else None,
         )
-

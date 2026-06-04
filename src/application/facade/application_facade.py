@@ -19,7 +19,9 @@ class ApplicationFacade:
 
         self._command_handlers[command_type] = handler
 
-    def register_query_handler(self, query_type: type, handler: Callable[[Any], Any]) -> None:
+    def register_query_handler(
+        self, query_type: type, handler: Callable[[Any], Any]
+    ) -> None:
         """Регистрирует query handler."""
 
         self._query_handlers[query_type] = handler
@@ -29,7 +31,9 @@ class ApplicationFacade:
 
         handler = self._command_handlers.get(type(command))
         if handler is None:
-            raise LookupError(f"Handler не найден для command: {type(command).__name__}")
+            raise LookupError(
+                f"Handler не найден для command: {type(command).__name__}"
+            )
         return handler(command)
 
     def query(self, query: Any) -> Any:
@@ -39,4 +43,3 @@ class ApplicationFacade:
         if handler is None:
             raise LookupError(f"Handler не найден для query: {type(query).__name__}")
         return handler(query)
-

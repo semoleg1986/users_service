@@ -13,4 +13,3 @@ class ListParentStudentLinksQuery:
     actor_roles: list[str]
     parent_id: str | None = None
     student_id: str | None = None
-

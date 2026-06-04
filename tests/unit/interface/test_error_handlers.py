@@ -38,18 +38,18 @@ def test_http_error_handlers_cover_access_and_validation_cases() -> None:
 
     client = TestClient(app)
 
-    denied = client.get(
+    denied_response = client.get(
         "/denied",
         headers={
             "X-Request-ID": "req-users-001",
             "X-Correlation-ID": "corr-users-001",
         },
     )
-    assert denied.status_code == 403
-    assert denied.headers.get("X-Request-ID") == "req-users-001"
-    assert denied.headers.get("X-Correlation-ID") == "corr-users-001"
-    assert denied.json().get("request_id") == "req-users-001"
-    assert denied.json().get("correlation_id") == "corr-users-001"
+    assert denied_response.status_code == 403
+    assert denied_response.headers.get("X-Request-ID") == "req-users-001"
+    assert denied_response.headers.get("X-Correlation-ID") == "corr-users-001"
+    assert denied_response.json().get("request_id") == "req-users-001"
+    assert denied_response.json().get("correlation_id") == "corr-users-001"
 
     pyd = client.get("/pydantic")
     assert pyd.status_code == 422

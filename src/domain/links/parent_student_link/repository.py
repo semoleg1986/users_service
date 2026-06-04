@@ -13,7 +13,9 @@ class ParentStudentLinkRepository(Protocol):
     def get(self, link_id: str) -> ParentStudentLink | None:
         """Возвращает связь по link_id."""
 
-    def get_active_by_pair(self, parent_id: str, student_id: str) -> ParentStudentLink | None:
+    def get_active_by_pair(
+        self, parent_id: str, student_id: str
+    ) -> ParentStudentLink | None:
         """Возвращает активную связь по паре parent-student."""
 
     def save(self, link: ParentStudentLink) -> None:

@@ -21,4 +21,3 @@ class LinkNote:
     def __post_init__(self) -> None:
         if len(self.value) > 500:
             raise InvariantViolationError("Комментарий к связи слишком длинный.")
-

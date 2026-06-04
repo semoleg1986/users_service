@@ -56,4 +56,3 @@ class EntityMeta:
         self.archived_at = at
         self.archived_by = actor_id
         self.touch(at=at, actor_id=actor_id)
-

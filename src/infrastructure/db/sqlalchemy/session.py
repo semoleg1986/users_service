@@ -20,11 +20,14 @@ def build_engine(url: str | None = None) -> Engine:
 
     url = url or get_database_url()
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    return create_engine(url, future=True, pool_pre_ping=True, connect_args=connect_args)
+    return create_engine(
+        url, future=True, pool_pre_ping=True, connect_args=connect_args
+    )
 
 
 def build_session_factory(engine: Engine) -> sessionmaker[Session]:
     """Создает sessionmaker."""
 
-    return sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
-
+    return sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )

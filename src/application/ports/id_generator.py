@@ -10,4 +10,3 @@ class IdGenerator(Protocol):
 
     def new(self) -> str:
         """Возвращает новый идентификатор."""
-

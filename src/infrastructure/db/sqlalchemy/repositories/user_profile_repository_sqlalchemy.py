@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -29,13 +28,17 @@ class SqlAlchemyUserProfileRepository:
 
     def get_by_email(self, email: str) -> UserProfile | None:
         row = self._db.execute(
-            select(UserProfileModel).where(UserProfileModel.email == email.strip().lower())
+            select(UserProfileModel).where(
+                UserProfileModel.email == email.strip().lower()
+            )
         ).scalar_one_or_none()
         if row is None:
             return None
         return self._to_entity(row)
 
-    def list(self, *, role: str | None = None, status: str | None = None) -> list[UserProfile]:
+    def list(
+        self, *, role: str | None = None, status: str | None = None
+    ) -> list[UserProfile]:
         stmt = select(UserProfileModel)
         rows = self._db.execute(stmt).scalars().all()
         items = [self._to_entity(row) for row in rows]
@@ -94,4 +97,3 @@ class SqlAlchemyUserProfileRepository:
                 revoked_by=None,
             )
         return profile
-
