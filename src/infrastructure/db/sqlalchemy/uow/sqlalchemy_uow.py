@@ -5,13 +5,16 @@ from __future__ import annotations
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.application.ports.repositories import RepositoryProvider
-from src.infrastructure.db.sqlalchemy.repositories.parent_student_link_repository_sqlalchemy import (
+from src.infrastructure.db.sqlalchemy.repositories.parent_student_link_repository_sqlalchemy import (  # noqa: E501
     SqlAlchemyParentStudentLinkRepository,
 )
-from src.infrastructure.db.sqlalchemy.repositories.student_invite_repository_sqlalchemy import (
+from src.infrastructure.db.sqlalchemy.repositories.staff_invite_repository_sqlalchemy import (  # noqa: E501
+    SqlAlchemyStaffInviteRepository,
+)
+from src.infrastructure.db.sqlalchemy.repositories.student_invite_repository_sqlalchemy import (  # noqa: E501
     SqlAlchemyStudentInviteRepository,
 )
-from src.infrastructure.db.sqlalchemy.repositories.user_profile_repository_sqlalchemy import (
+from src.infrastructure.db.sqlalchemy.repositories.user_profile_repository_sqlalchemy import (  # noqa: E501
     SqlAlchemyUserProfileRepository,
 )
 
@@ -26,6 +29,7 @@ class SqlAlchemyUnitOfWork:
             user_profiles=SqlAlchemyUserProfileRepository(self._db),
             parent_student_links=SqlAlchemyParentStudentLinkRepository(self._db),
             student_invites=SqlAlchemyStudentInviteRepository(self._db),
+            staff_invites=SqlAlchemyStaffInviteRepository(self._db),
         )
 
     def __enter__(self) -> SqlAlchemyUnitOfWork:

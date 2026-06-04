@@ -62,3 +62,34 @@ class ConsumedStudentInviteResult:
     student_user_id: str
     email: str
     consumed_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class StaffInviteResult:
+    """DTO staff invite."""
+
+    invite_id: str
+    creator_user_id: str
+    target_user_id: str
+    email: str
+    roles: list[str]
+    status: str
+    expires_at: datetime
+    used_at: datetime | None
+    revoked_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+    invite_token: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConsumedInviteResult:
+    """DTO результата consume любого onboarding invite."""
+
+    invite_id: str
+    invite_type: str
+    user_id: str
+    email: str
+    roles: list[str]
+    consumed_at: datetime

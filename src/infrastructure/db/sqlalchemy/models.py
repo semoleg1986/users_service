@@ -99,3 +99,42 @@ class StudentInviteModel(Base):
         DateTime(timezone=True), nullable=True
     )
     archived_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class StaffInviteModel(Base):
+    """Invite для onboarding Studio/admin identity."""
+
+    __tablename__ = "staff_invites"
+
+    invite_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    creator_user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    target_user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    roles_json: Mapped[str] = mapped_column(Text, nullable=False)
+    token_hash: Mapped[str] = mapped_column(
+        String(128), nullable=False, unique=True, index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    version: Mapped[int] = mapped_column(nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    updated_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    archived_by: Mapped[str | None] = mapped_column(String(64), nullable=True)

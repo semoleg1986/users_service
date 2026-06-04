@@ -7,11 +7,13 @@ from dataclasses import asdict
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from src.application.links.queries.dto import ListParentStudentLinksQuery
+from src.application.staff_invites.commands.dto import ConsumeStaffInviteCommand
 from src.application.student_invites.commands.dto import ConsumeStudentInviteCommand
 from src.application.users.queries.dto import GetUserByIdQuery
 from src.domain.errors import InvariantViolationError
 from src.interface.http.observability import increment_counter
 from src.interface.http.v1.schemas.internal import (
+    ConsumedInviteResponse,
     ConsumedStudentInviteResponse,
     ConsumeStudentInviteRequest,
     ParentStudentRelationResponse,
@@ -159,3 +161,81 @@ def consume_student_invite(
         consumer=payload.consumer,
     )
     return ConsumedStudentInviteResponse(**asdict(result))
+
+
+@router.post(
+    "/staff-invites/consume",
+    response_model=ConsumedInviteResponse,
+)
+def consume_staff_invite(
+    payload: ConsumeStudentInviteRequest,
+    service_token: str | None = Header(default=None, alias="X-Service-Token"),
+    expected_token: str = Depends(get_service_token),
+    facade=Depends(get_facade),
+) -> ConsumedInviteResponse:
+    """Одноразово consume staff invite token для auth onboarding flow."""
+
+    if not service_token:
+        raise HTTPException(status_code=401, detail="Требуется X-Service-Token.")
+    if service_token != expected_token:
+        raise HTTPException(status_code=401, detail="Некорректный X-Service-Token.")
+
+    result = facade.execute(
+        ConsumeStaffInviteCommand(
+            token=payload.token,
+            consumer=payload.consumer,
+        )
+    )
+    increment_counter(
+        "staff_invites_consumed_total",
+        "Total consumed staff invites by internal consumers.",
+        result="success",
+        consumer=payload.consumer,
+    )
+    return ConsumedInviteResponse(**asdict(result))
+
+
+@router.post(
+    "/invites/consume",
+    response_model=ConsumedInviteResponse,
+)
+def consume_onboarding_invite(
+    payload: ConsumeStudentInviteRequest,
+    service_token: str | None = Header(default=None, alias="X-Service-Token"),
+    expected_token: str = Depends(get_service_token),
+    facade=Depends(get_facade),
+) -> ConsumedInviteResponse:
+    """Одноразово consume onboarding invite token любого поддерживаемого типа."""
+
+    if not service_token:
+        raise HTTPException(status_code=401, detail="Требуется X-Service-Token.")
+    if service_token != expected_token:
+        raise HTTPException(status_code=401, detail="Некорректный X-Service-Token.")
+
+    try:
+        staff_result = facade.execute(
+            ConsumeStaffInviteCommand(token=payload.token, consumer=payload.consumer)
+        )
+        return ConsumedInviteResponse(**asdict(staff_result))
+    except InvariantViolationError as exc:
+        if str(exc) != "invite не найден.":
+            raise
+
+    student_result = facade.execute(
+        ConsumeStudentInviteCommand(token=payload.token, consumer=payload.consumer)
+    )
+    increment_counter(
+        "onboarding_invites_consumed_total",
+        "Total consumed onboarding invites by internal consumers.",
+        result="success",
+        consumer=payload.consumer,
+        invite_type="student",
+    )
+    return ConsumedInviteResponse(
+        invite_id=student_result.invite_id,
+        invite_type="student",
+        user_id=student_result.student_user_id,
+        email=student_result.email,
+        roles=["student"],
+        consumed_at=student_result.consumed_at,
+    )

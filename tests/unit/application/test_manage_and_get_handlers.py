@@ -29,6 +29,7 @@ from src.domain.users.profile.entity import UserProfile
 from src.domain.users.profile.value_objects import DisplayName, Email
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStaffInviteRepository,
     InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
@@ -54,6 +55,7 @@ def _uow_with_profiles() -> tuple[InMemoryUnitOfWork, _Clock]:
             user_profiles=InMemoryUserProfileRepository(),
             parent_student_links=InMemoryParentStudentLinkRepository(),
             student_invites=InMemoryStudentInviteRepository(),
+            staff_invites=InMemoryStaffInviteRepository(),
         )
     )
     admin = UserProfile.create(

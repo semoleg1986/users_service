@@ -8,9 +8,30 @@ User domain service for parent and student profiles.
 - user profiles for `parent`, `student`, `teacher`, `admin`
 - parent-student links
 - role assignment and profile status changes
+- student/staff invite metadata for identity onboarding
 - self-bootstrap profile endpoint for authenticated users
 
 It is the source of truth for parent/student relationships.
+
+## Invite onboarding contracts
+
+Student onboarding:
+- `POST /v1/parent/me/students/{student_id}/invite`
+- `POST /internal/v1/student-invites/consume`
+
+Studio/staff onboarding:
+- `POST /v1/admin/users/{user_id}/staff-invite`
+- Target profile must already be `active` and have at least one staff role:
+  `admin`, `teacher`, or `content_manager`.
+- `POST /internal/v1/staff-invites/consume`
+
+Unified auth-facing consume endpoint:
+- `POST /internal/v1/invites/consume`
+- Response contains `invite_type`, `user_id`, `email`, `roles`, and
+  `consumed_at`.
+
+Invariant: `auth_service` must create the account with exactly the same
+`user_id` returned by users_service invite consume.
 
 ## Local run
 

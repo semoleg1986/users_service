@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from src.domain.links.parent_student_link.entity import ParentStudentLink
+from src.domain.links.staff_invite.entity import StaffInvite
 from src.domain.links.student_invite.entity import StudentInvite
 from src.domain.shared.statuses import InviteStatus
 from src.domain.users.profile.entity import UserProfile
@@ -128,4 +129,48 @@ class InMemoryStudentInviteRepository:
         if invite.idempotency_key is not None:
             self._by_parent_idempotency[
                 (invite.parent_user_id, invite.idempotency_key.value)
+            ] = invite.invite_id
+
+
+class InMemoryStaffInviteRepository:
+    """In-memory репозиторий StaffInvite."""
+
+    def __init__(self) -> None:
+        self._by_id: dict[str, StaffInvite] = {}
+        self._by_token_hash: dict[str, str] = {}
+        self._by_creator_idempotency: dict[tuple[str, str], str] = {}
+
+    def get(self, invite_id: str) -> StaffInvite | None:
+        return self._by_id.get(invite_id)
+
+    def get_by_creator_and_idempotency(
+        self, *, creator_id: str, idempotency_key: str
+    ) -> StaffInvite | None:
+        invite_id = self._by_creator_idempotency.get((creator_id, idempotency_key))
+        if invite_id is None:
+            return None
+        return self._by_id.get(invite_id)
+
+    def get_pending_by_target(self, target_user_id: str) -> StaffInvite | None:
+        now = datetime.now(UTC)
+        for invite in self._by_id.values():
+            if invite.target_user_id != target_user_id:
+                continue
+            invite.mark_expired_if_needed(now=now, actor_id="system")
+            if invite.status == InviteStatus.PENDING:
+                return invite
+        return None
+
+    def get_by_token_hash(self, token_hash: str) -> StaffInvite | None:
+        invite_id = self._by_token_hash.get(token_hash)
+        if invite_id is None:
+            return None
+        return self._by_id.get(invite_id)
+
+    def save(self, invite: StaffInvite) -> None:
+        self._by_id[invite.invite_id] = invite
+        self._by_token_hash[invite.token_hash.value] = invite.invite_id
+        if invite.idempotency_key is not None:
+            self._by_creator_idempotency[
+                (invite.creator_user_id, invite.idempotency_key.value)
             ] = invite.invite_id

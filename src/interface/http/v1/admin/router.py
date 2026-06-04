@@ -11,6 +11,7 @@ from src.application.links.commands.dto import (
     RemoveParentStudentLinkCommand,
 )
 from src.application.links.queries.dto import ListParentStudentLinksQuery
+from src.application.staff_invites.commands.dto import CreateStaffInviteCommand
 from src.application.users.commands.dto import (
     AssignRoleCommand,
     ChangeUserStatusCommand,
@@ -28,7 +29,9 @@ from src.interface.http.v1.schemas.links import (
 )
 from src.interface.http.v1.schemas.users import (
     AssignRoleRequest,
+    CreateStaffInviteRequest,
     CreateUserRequest,
+    StaffInviteResponse,
     UpdateUserRequest,
     UserListResponse,
     UserResponse,
@@ -183,6 +186,37 @@ def revoke_role(
         )
     )
     return UserResponse(**asdict(result))
+
+
+@router.post(
+    "/users/{user_id}/staff-invite",
+    response_model=StaffInviteResponse,
+    status_code=201,
+)
+def create_staff_invite(
+    user_id: str,
+    payload: CreateStaffInviteRequest,
+    actor: HttpActor = Depends(get_http_actor),
+    facade=Depends(get_facade),
+) -> StaffInviteResponse:
+    """Создает одноразовый invite для Studio/admin onboarding."""
+
+    result = facade.execute(
+        CreateStaffInviteCommand(
+            target_user_id=user_id,
+            actor_id=actor.actor_id,
+            actor_roles=actor.roles,
+            roles=payload.roles,
+            ttl_seconds=payload.ttl_seconds,
+            idempotency_key=payload.idempotency_key,
+        )
+    )
+    increment_counter(
+        "staff_invites_created_total",
+        "Total staff invites created by admin.",
+        result="success",
+    )
+    return StaffInviteResponse(**asdict(result))
 
 
 def _change_status(

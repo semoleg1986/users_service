@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.domain.links.parent_student_link.repository import ParentStudentLinkRepository
+from src.domain.links.staff_invite.repository import StaffInviteRepository
 from src.domain.links.student_invite.repository import StudentInviteRepository
 from src.domain.users.profile.repository import UserProfileRepository
 
@@ -16,3 +17,4 @@ class RepositoryProvider:
     user_profiles: UserProfileRepository
     parent_student_links: ParentStudentLinkRepository
     student_invites: StudentInviteRepository
+    staff_invites: StaffInviteRepository

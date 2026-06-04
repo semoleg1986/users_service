@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from src.application.ports.repositories import RepositoryProvider
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStaffInviteRepository,
     InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
@@ -19,6 +20,7 @@ class InMemoryRepositoryProvider(RepositoryProvider):
     user_profiles: InMemoryUserProfileRepository
     parent_student_links: InMemoryParentStudentLinkRepository
     student_invites: InMemoryStudentInviteRepository
+    staff_invites: InMemoryStaffInviteRepository
 
 
 class InMemoryUnitOfWork:

@@ -24,6 +24,7 @@ class UserRole(StrEnum):
 
     ADMIN = "admin"
     TEACHER = "teacher"
+    CONTENT_MANAGER = "content_manager"
     PARENT = "parent"
     STUDENT = "student"
 

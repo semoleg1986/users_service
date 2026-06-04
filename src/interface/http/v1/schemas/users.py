@@ -40,6 +40,14 @@ class CreateStudentInviteRequest(BaseModel):
     idempotency_key: str | None = Field(default=None, min_length=1, max_length=128)
 
 
+class CreateStaffInviteRequest(BaseModel):
+    """Request создания invite для studio/admin profile."""
+
+    ttl_seconds: int = Field(default=86400, ge=60, le=604800)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=128)
+    roles: list[str] | None = None
+
+
 class EnsureMyProfileRequest(BaseModel):
     """Request bootstrap профиля текущего пользователя."""
 
@@ -75,6 +83,24 @@ class StudentInviteResponse(BaseModel):
     parent_user_id: str
     student_user_id: str
     email: str
+    status: str
+    expires_at: datetime
+    used_at: datetime | None = None
+    revoked_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+    invite_token: str | None = None
+
+
+class StaffInviteResponse(BaseModel):
+    """Response staff invite."""
+
+    invite_id: str
+    creator_user_id: str
+    target_user_id: str
+    email: str
+    roles: list[str]
     status: str
     expires_at: datetime
     used_at: datetime | None = None

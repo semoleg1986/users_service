@@ -1,0 +1,1 @@
+"""Staff invite application slice."""

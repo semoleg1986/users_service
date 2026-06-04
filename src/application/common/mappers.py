@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from src.application.common.dto import (
     ParentStudentLinkResult,
+    StaffInviteResult,
     StudentInviteResult,
     UserProfileResult,
 )
 from src.domain.links.parent_student_link.entity import ParentStudentLink
+from src.domain.links.staff_invite.entity import StaffInvite
 from src.domain.links.student_invite.entity import StudentInvite
 from src.domain.users.profile.entity import UserProfile
 
@@ -53,6 +55,28 @@ def to_student_invite_result(
         parent_user_id=invite.parent_user_id,
         student_user_id=invite.student_user_id,
         email=invite.email,
+        status=invite.status.value,
+        expires_at=invite.expires_at,
+        used_at=invite.used_at,
+        revoked_at=invite.revoked_at,
+        created_at=invite.meta.created_at,
+        updated_at=invite.meta.updated_at,
+        version=invite.meta.version,
+        invite_token=invite_token,
+    )
+
+
+def to_staff_invite_result(
+    invite: StaffInvite, *, invite_token: str | None = None
+) -> StaffInviteResult:
+    """Преобразует StaffInvite в StaffInviteResult."""
+
+    return StaffInviteResult(
+        invite_id=invite.invite_id,
+        creator_user_id=invite.creator_user_id,
+        target_user_id=invite.target_user_id,
+        email=invite.email,
+        roles=sorted(role.value for role in invite.roles),
         status=invite.status.value,
         expires_at=invite.expires_at,
         used_at=invite.used_at,

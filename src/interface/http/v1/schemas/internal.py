@@ -46,3 +46,14 @@ class ConsumedStudentInviteResponse(BaseModel):
     student_user_id: str
     email: str
     consumed_at: datetime
+
+
+class ConsumedInviteResponse(BaseModel):
+    """Response consumed onboarding invite любого типа."""
+
+    invite_id: str
+    invite_type: str
+    user_id: str
+    email: str
+    roles: list[str]
+    consumed_at: datetime

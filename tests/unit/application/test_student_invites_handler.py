@@ -19,6 +19,7 @@ from src.domain.users.profile.entity import UserProfile
 from src.domain.users.profile.value_objects import DisplayName, Email
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStaffInviteRepository,
     InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
@@ -53,6 +54,7 @@ def _uow() -> tuple[InMemoryUnitOfWork, _Clock]:
             user_profiles=InMemoryUserProfileRepository(),
             parent_student_links=InMemoryParentStudentLinkRepository(),
             student_invites=InMemoryStudentInviteRepository(),
+            staff_invites=InMemoryStaffInviteRepository(),
         )
     )
 
@@ -95,8 +97,12 @@ def _uow() -> tuple[InMemoryUnitOfWork, _Clock]:
 
 def test_create_and_consume_student_invite(monkeypatch: pytest.MonkeyPatch) -> None:
     uow, clock = _uow()
+    token_urlsafe_path = (
+        "src.application.student_invites.handlers.manage_student_invites_handler."
+        "secrets.token_urlsafe"
+    )
     monkeypatch.setattr(
-        "src.application.student_invites.handlers.manage_student_invites_handler.secrets.token_urlsafe",
+        token_urlsafe_path,
         lambda _: "raw-invite-token",
     )
 
@@ -151,8 +157,12 @@ def test_create_invite_requires_active_parent_student_link() -> None:
 
 def test_consume_invite_is_single_use(monkeypatch: pytest.MonkeyPatch) -> None:
     uow, clock = _uow()
+    token_urlsafe_path = (
+        "src.application.student_invites.handlers.manage_student_invites_handler."
+        "secrets.token_urlsafe"
+    )
     monkeypatch.setattr(
-        "src.application.student_invites.handlers.manage_student_invites_handler.secrets.token_urlsafe",
+        token_urlsafe_path,
         lambda _: "raw-invite-token",
     )
 
@@ -187,8 +197,12 @@ def test_consume_invite_is_single_use(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_create_invite_is_idempotent_by_key(monkeypatch: pytest.MonkeyPatch) -> None:
     uow, clock = _uow()
+    token_urlsafe_path = (
+        "src.application.student_invites.handlers.manage_student_invites_handler."
+        "secrets.token_urlsafe"
+    )
     monkeypatch.setattr(
-        "src.application.student_invites.handlers.manage_student_invites_handler.secrets.token_urlsafe",
+        token_urlsafe_path,
         lambda _: "raw-invite-token",
     )
 

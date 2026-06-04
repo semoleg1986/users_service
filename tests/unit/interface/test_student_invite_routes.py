@@ -138,3 +138,40 @@ def test_internal_consume_requires_service_token() -> None:
         json={"token": "x", "consumer": "auth_service"},
     )
     assert response.status_code == 401
+
+
+def test_admin_can_create_staff_invite_and_internal_consume_any_invite() -> None:
+    client = _client()
+    admin_headers = _auth_headers(sub="admin-1", roles=["admin"])
+
+    response = client.post(
+        "/v1/admin/users",
+        json={
+            "user_id": "teacher-1",
+            "email": "teacher1@example.com",
+            "display_name": "Teacher One",
+            "phone": None,
+            "roles": ["teacher"],
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == 201, response.text
+
+    invite = client.post(
+        "/v1/admin/users/teacher-1/staff-invite",
+        json={"ttl_seconds": 3600, "idempotency_key": "staff-invite-1"},
+        headers=admin_headers,
+    )
+    assert invite.status_code == 201, invite.text
+    token = invite.json().get("invite_token")
+    assert token
+
+    consumed = client.post(
+        "/internal/v1/invites/consume",
+        json={"token": token, "consumer": "auth_service"},
+        headers={"X-Service-Token": "internal-token"},
+    )
+    assert consumed.status_code == 200, consumed.text
+    assert consumed.json()["invite_type"] == "staff"
+    assert consumed.json()["user_id"] == "teacher-1"
+    assert consumed.json()["roles"] == ["teacher"]

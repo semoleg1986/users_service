@@ -17,6 +17,7 @@ from src.domain.errors import AccessDeniedError, InvariantViolationError
 from src.domain.shared.statuses import UserRole
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStaffInviteRepository,
     InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
@@ -49,6 +50,7 @@ def _build_uow() -> InMemoryUnitOfWork:
             user_profiles=InMemoryUserProfileRepository(),
             parent_student_links=InMemoryParentStudentLinkRepository(),
             student_invites=InMemoryStudentInviteRepository(),
+            staff_invites=InMemoryStaffInviteRepository(),
         )
     )
 

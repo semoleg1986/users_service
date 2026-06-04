@@ -16,6 +16,14 @@ from src.application.links.handlers.create_parent_student_link_handler import (
 )
 from src.application.links.queries.dto import ListParentStudentLinksQuery
 from src.application.ports.access_token_verifier import AccessTokenVerifier
+from src.application.staff_invites.commands.dto import (
+    ConsumeStaffInviteCommand,
+    CreateStaffInviteCommand,
+)
+from src.application.staff_invites.handlers.manage_staff_invites_handler import (
+    ConsumeStaffInviteHandler,
+    CreateStaffInviteHandler,
+)
 from src.application.student_invites.commands.dto import (
     ConsumeStudentInviteCommand,
     CreateStudentInviteCommand,
@@ -69,6 +77,7 @@ from src.infrastructure.clock.system_clock import SystemClock
 from src.infrastructure.config.settings import Settings
 from src.infrastructure.db.inmemory.repositories import (
     InMemoryParentStudentLinkRepository,
+    InMemoryStaffInviteRepository,
     InMemoryStudentInviteRepository,
     InMemoryUserProfileRepository,
 )
@@ -104,9 +113,13 @@ def build_runtime() -> RuntimeContainer:
                 user_profiles=InMemoryUserProfileRepository(),
                 parent_student_links=InMemoryParentStudentLinkRepository(),
                 student_invites=InMemoryStudentInviteRepository(),
+                staff_invites=InMemoryStaffInviteRepository(),
             )
         )
-        uow_factory = lambda: uow
+
+        def uow_factory():
+            return uow
+
     else:
         from src.infrastructure.db.sqlalchemy import models as _models  # noqa: F401
         from src.infrastructure.db.sqlalchemy.base import Base
@@ -122,7 +135,9 @@ def build_runtime() -> RuntimeContainer:
         if settings.auto_create_schema:
             Base.metadata.create_all(bind=engine)
         session_factory = build_session_factory(engine)
-        uow_factory = lambda: SqlAlchemyUnitOfWork(session_factory)
+
+        def uow_factory():
+            return SqlAlchemyUnitOfWork(session_factory)
 
     clock = SystemClock()
     id_generator = UuidGenerator()
@@ -155,6 +170,18 @@ def build_runtime() -> RuntimeContainer:
     facade.register_command_handler(
         ConsumeStudentInviteCommand,
         ConsumeStudentInviteHandler(uow_factory=uow_factory, clock=clock),
+    )
+    facade.register_command_handler(
+        CreateStaffInviteCommand,
+        CreateStaffInviteHandler(
+            uow_factory=uow_factory,
+            clock=clock,
+            id_generator=id_generator,
+        ),
+    )
+    facade.register_command_handler(
+        ConsumeStaffInviteCommand,
+        ConsumeStaffInviteHandler(uow_factory=uow_factory, clock=clock),
     )
     facade.register_command_handler(
         EnsureMyProfileCommand,
